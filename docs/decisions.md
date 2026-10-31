@@ -61,6 +61,8 @@ way it does, what it costs, and why the obvious alternatives were rejected.
 | [D-019](#d-019) | Billable quantity from dimensions is computed in code | Accepted | 03 |
 | [D-020](#d-020) | Default LLM: Gemini 3.5 Flash-Lite | Proposed | 03 |
 | [D-021](#d-021) | PDF engine: Jinja2 + xhtml2pdf | Accepted | 06 |
+| [D-022](#d-022) | Offline demo brain (`KP_LLM_MODEL=demo`) | Accepted | 08 |
+| [D-023](#d-023) | Frontend: Next.js 16 + Tailwind, hand-written UI primitives | Accepted | 08 |
 
 ---
 
@@ -444,3 +446,38 @@ way it does, what it costs, and why the obvious alternatives were rejected.
   - *WeasyPrint*: best CSS support, but native dependencies; fails on Windows without GTK.
   - *ReportLab directly*: layout in Python code, tedious to restyle.
   - *Headless Chrome (Playwright)*: excellent output, ~150 MB browser dependency for one document.
+
+<a id="d-022"></a>
+## D-022: Offline demo brain (`KP_LLM_MODEL=demo`)
+- **Date:** 2026-11-01 · **Status:** Accepted · **Phase:** [08](phases/phase-08.md)
+- **Context:** The frontend needs a running backend to build against and demo, but the LLM needs an API
+  key and costs money per message. CI and first-time setup shouldn't depend on either.
+- **Decision:** `app/llm/demo.py::DemoBrain` implements the same two functions as the real LLM layer
+  (`classify_intent`, `extract`). It returns exact extractions for the preset scenarios in
+  `app/data/demo_scenarios.json` (also served at `GET /api/demo/scenarios` for the Customer Hub buttons)
+  and uses keyword/regex rules for other text. Selected with `KP_LLM_MODEL=demo`.
+- **Why it matters:** The whole product (graph, pricing, PDFs, approval, follow-ups) can be clicked through
+  with zero setup, and a demo never fails because of a network or quota problem.
+- **Effects:**
+  - Everything after extraction is the real code path; only the "reading" step is simulated.
+  - Free-text handling in demo mode is basic by design. Real quality is measured with the configured LLM (Phase 12).
+- **Why not:**
+  - *Always require a key*: blocks contributors, CI and offline demos.
+  - *Mock at HTTP level*: more brittle and less honest than swapping the function the graph already depends on (D-014).
+
+<a id="d-023"></a>
+## D-023: Frontend: Next.js 16 + Tailwind, hand-written UI primitives
+- **Date:** 2026-11-01 · **Status:** Accepted · **Phase:** [08](phases/phase-08.md)
+- **Context:** The plan said Next.js + Tailwind + shadcn/ui. The 15.5 scaffold had published security
+  advisories (Next and its bundled PostCSS/sharp), fixed only in Next 16.
+- **Decision:** Next.js **16.4.3** with React 19.2 and Tailwind v4 (`npm audit`: 0 vulnerabilities).
+  Instead of running the shadcn generator, a few shadcn-style primitives (Button, Card, StatusBadge)
+  live in `src/components/ui.tsx`. Types for the API are hand-written in `src/lib/api.ts`, mirroring
+  `docs/openapi.json`.
+- **Why it matters:** Starting a new project on a version with known vulnerabilities is avoidable debt.
+  The UI needs only a handful of components, so a generator and Radix dependency tree aren't worth it yet.
+- **Effects:** Next 16 uses flat ESLint config (`eslint.config.mjs`). Adopting shadcn later is
+  straightforward because the class conventions match.
+- **Why not:**
+  - *Stay on 15.5.x*: known high-severity advisories.
+  - *Full shadcn/ui now*: more dependencies than two screens need.
