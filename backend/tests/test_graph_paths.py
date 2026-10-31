@@ -59,7 +59,7 @@ async def test_clarification_continues_across_turns(
     assert out["revision"] == 1
     assert out["pending_inquiry"] == []
     quote = await repo.get_quote(out["quote_id"])
-    assert quote is not None and quote.status == "draft"
+    assert quote is not None and quote.status == "awaiting_approval"
 
 
 async def test_complete_request_creates_priced_quote(graph: CompiledStateGraph, repo: Repo) -> None:

@@ -6,12 +6,15 @@ node never sends anything twice (D-010).
 
 from typing import Any
 
+from langgraph.types import interrupt
+
 from app.agent.deps import Deps
 from app.agent.state import AgentState
+from app.schemas.decision import DecisionAdapter, Edits
 from app.schemas.extraction import Extraction
 from app.schemas.pricing import Discount, PricingInput
 from app.services.clarify import clarify_message
-from app.services.pricing import price_quote
+from app.services.pricing import PricingError, price_quote
 from app.services.states import state_code
 from app.services.validator import ValidationResult, validate
 
@@ -27,6 +30,11 @@ REPLY_NOTHING_TO_CANCEL = "There's no open quote to cancel. Message us any time 
 REPLY_PREPARING = (
     "Thanks! We have everything we need. Your quote {number} is being prepared and will be "
     "sent after a quick review."
+)
+REPLY_APPROVED = "Your quote {number} is ready."
+REPLY_REJECTED = (
+    "Sorry, we can't take on this order right now (quote {number}). We'll be in touch if that "
+    "changes."
 )
 
 
@@ -148,6 +156,98 @@ class Nodes:
     async def render_pdf(self, state: AgentState) -> dict[str, Any]:
         # Phase 06 replaces this stub with real rendering.
         return {"pdf_path": None}
+
+    # --- human in the loop (Phase 05) -------------------------------------------------------------
+
+    async def submit_for_review(self, state: AgentState) -> dict[str, Any]:
+        """Put the quote in the owner's inbox. Runs before the pause, so the resume replay of
+        `hitl_pause` never repeats it (D-010)."""
+        quote = await self.deps.repo.set_status(
+            state["quote_id"],
+            "awaiting_approval",
+            event={"revision": state["revision"]},
+            pdf_path=state.get("pdf_path"),
+        )
+        update: dict[str, Any] = {"outcome": "awaiting_approval"}
+        if state["revision"] == 1:  # tell the customer once, not after every owner edit
+            update["reply"] = REPLY_PREPARING.format(number=quote.number)
+        return update
+
+    async def hitl_pause(self, state: AgentState) -> dict[str, Any]:
+        # D-010: nothing above interrupt() may have side effects; this node re-runs on resume.
+        decision = interrupt(
+            {
+                "quote_id": state["quote_id"],
+                "conversation_id": state["conversation_id"],
+                "revision": state["revision"],
+                "line_items": state["line_items"],
+                "totals": state["totals"],
+                "flags": state.get("flags", []),
+                "pdf_path": state.get("pdf_path"),
+                "edit_errors": state.get("edit_errors", []),
+            }
+        )
+        parsed = DecisionAdapter.validate_python(decision)
+        return {"decision": parsed.model_dump(mode="json"), "reply": "", "edit_errors": []}
+
+    async def apply_edits(self, state: AgentState) -> dict[str, Any]:
+        """Turn the owner's structured edits into new pricing inputs, or explain why not."""
+        edits = Edits.model_validate(state["decision"]["edits"])
+        current = {p["sku"]: p for p in state["pricing_inputs"]}
+        inputs = state["pricing_inputs"]
+        if edits.items is not None:
+            inputs = [
+                PricingInput(
+                    sku=e.sku,
+                    quantity=e.quantity,
+                    specs=e.specs
+                    if e.specs is not None
+                    else current.get(e.sku, {}).get("specs", {}),
+                ).model_dump()
+                for e in edits.items
+            ]
+        discount = state.get("discount")
+        if edits.remove_discount:
+            discount = None
+        elif edits.discount is not None:
+            discount = edits.discount.model_dump()
+
+        try:  # dry run: catches unknown SKUs, MOQ, bad options, oversized discounts
+            price_quote(
+                [PricingInput.model_validate(p) for p in inputs],
+                catalog=self.deps.catalog,
+                business_state=self.deps.settings.business_state,
+                customer_state=self._customer_state(state),
+                discount=Discount.model_validate(discount) if discount else None,
+            )
+        except (PricingError, ValueError) as exc:
+            await self.deps.repo.add_event(state["quote_id"], "edit_rejected", {"error": str(exc)})
+            return {"edit_errors": [str(exc)]}
+
+        await self.deps.repo.add_event(
+            state["quote_id"], "edited", {"from_revision": state["revision"], **edits.model_dump()}
+        )
+        return {"pricing_inputs": inputs, "discount": discount, "edit_errors": []}
+
+    async def mark_rejected(self, state: AgentState) -> dict[str, Any]:
+        reason = state["decision"]["reason"]
+        quote = await self.deps.repo.set_status(
+            state["quote_id"], "rejected", event={"reason": reason}, rejection_reason=reason
+        )
+        return {"reply": REPLY_REJECTED.format(number=quote.number), "outcome": "rejected"}
+
+    async def dispatch(self, state: AgentState) -> dict[str, Any]:
+        # Phase 11 adds sending the PDF link and the follow-up timer.
+        quote = await self.deps.repo.set_status(state["quote_id"], "approved")
+        return {"reply": REPLY_APPROVED.format(number=quote.number), "outcome": "approved"}
+
+
+def route_decision(state: AgentState) -> str:
+    return state["decision"]["action"]
+
+
+def route_edits(state: AgentState) -> str:
+    return "invalid" if state.get("edit_errors") else "ok"
 
 
 def route_guardrail(state: AgentState) -> str:
