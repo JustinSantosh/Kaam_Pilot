@@ -1,0 +1,91 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit reviews every pull request and every new commit pushed to it.
+# Workflow: one branch + PR per phase (docs/project.md §11).
+language: en-US
+tone_instructions: "Be direct and specific. Cite the decision ID (D-xxx) when a change violates one."
+
+reviews:
+  profile: assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  collapse_walkthrough: false
+  sequence_diagrams: true
+  poem: false
+  in_progress_fortune: false
+  commit_status: true
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: true # review each new commit pushed to an open PR
+    drafts: false
+    base_branches: [".*"]
+
+  path_filters:
+    - "!backend/storage/**"
+    - "!**/.venv/**"
+    - "!frontend/.next/**"
+    - "!**/node_modules/**"
+    - "!backend/evals/recordings/**"
+
+  path_instructions:
+    - path: "backend/app/services/pricing.py"
+      instructions: |
+        Deterministic pricing core. Check against docs/phases/phase-02.md rules and D-002, D-005, D-006, D-018:
+        - money is integer paise; Decimal only inside calculations; never float
+        - rounding is ROUND_HALF_UP per line; discount shares must sum exactly and never exceed a line subtotal
+        - no I/O, no LLM calls, no randomness
+        Flag any rule change that isn't covered by a test in backend/tests/test_pricing.py.
+    - path: "backend/app/services/money.py"
+      instructions: "Integer paise in and out (D-005). Flag any float arithmetic."
+    - path: "backend/app/schemas/**"
+      instructions: |
+        Schemas that are passed to an LLM (with_structured_output) must contain no price, rate, tax,
+        discount or total fields (D-002, D-003). Flag money fields typed as float.
+    - path: "backend/app/data/catalog.json"
+      instructions: |
+        Check that tiers ascend, the last GST slab is open-ended, surcharge specs are listed in required_specs,
+        and HSN codes look right for the item. Rates are illustrative; flag obvious mismatches only.
+    - path: "backend/app/agent/**"
+      instructions: |
+        LangGraph workflow. Check D-001 (fixed topology), D-004 (completeness decided by code after extraction),
+        D-008 (don't start a new run while an interrupt is pending), D-009 (owner edits loop back to pricing),
+        D-010 (no side effects before interrupt(); the node re-runs on resume).
+    - path: "backend/app/api/**"
+      instructions: |
+        Async routes only, using ainvoke/aget_state (D-011). Business data is read from the records DB,
+        never from checkpoints (D-007). Check status codes and input validation.
+    - path: "backend/app/llm/**"
+      instructions: |
+        Customer text must be passed as delimited data, never concatenated into instructions (D-015).
+        Nodes depend on functions here, not vendor SDKs (D-014).
+    - path: "backend/tests/**"
+      instructions: |
+        Tests must not call live LLMs unless marked @pytest.mark.llm. Prefer table-driven tests for pricing edges.
+    - path: "docs/**"
+      instructions: |
+        Decision entries need Context, Decision, Why it matters, Effects and Why not. Never edit an old decision's
+        substance; supersede it. Phase status in docs/project.md must match the phase file.
+    - path: "frontend/**"
+      instructions: "No money arithmetic in the frontend; format paise only (D-005)."
+
+  tools:
+    ruff:
+      enabled: true
+    gitleaks:
+      enabled: true
+    markdownlint:
+      enabled: true
+    yamllint:
+      enabled: true
+    actionlint:
+      enabled: true
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "docs/decisions.md"
+      - "docs/project.md"

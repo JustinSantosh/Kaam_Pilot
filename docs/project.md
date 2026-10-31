@@ -395,3 +395,24 @@ npm run dev                                          # http://localhost:3000
 | **IGST** | Integrated GST, charged on inter-state supply instead of CGST + SGST. |
 | **MOQ** | Minimum order quantity. |
 | **Paise** | 1/100 rupee. All money is stored as integer paise. |
+
+---
+
+## 11. Development workflow
+
+Every change goes through a pull request so [CodeRabbit](https://coderabbit.ai) reviews it.
+Its configuration lives in [`.coderabbit.yaml`](../.coderabbit.yaml).
+
+1. Branch per phase from `main`: `phase-03-extraction`, `phase-04-graph`, …
+2. Commit in small steps; push the branch and open a PR early (mark it ready for review when
+   tests pass; draft PRs aren't reviewed).
+3. CodeRabbit posts a summary and review on the PR, then **re-reviews every new commit pushed to it**.
+   It sets a commit status on each commit, so the PR's commit list shows which commits were reviewed.
+4. Reply to a comment with `@coderabbitai` to discuss it, `@coderabbitai review` to re-run a review, or
+   `@coderabbitai pause` / `resume` to stop or restart reviews on that PR.
+5. Merge when CodeRabbit's comments are resolved and `pytest` + `ruff` pass; update the phase file and
+   the phase index in §8 as part of the PR.
+
+CodeRabbit is told to check changes against the decision log (`docs/decisions.md`) and gets
+specific instructions for the pricing, schema, graph and API code. Commits pushed directly to `main`
+are **not** reviewed; that's why each phase gets a PR.
