@@ -364,7 +364,7 @@ kaampilot/
 | [09](phases/phase-09.md) | Business Ops console | Done |
 | [10](phases/phase-10.md) | Guardrails & voice | Done (live voice check pending API key) |
 | [11](phases/phase-11.md) | Dispatch & follow-ups | Done |
-| [12](phases/phase-12.md) | Evals & observability | Not started |
+| [12](phases/phase-12.md) | Evals & observability | Done (live LLM run pending API key) |
 | [13](phases/phase-13.md) | Hardening & demo | Not started |
 
 Status values: `Not started` · `In progress` · `Done` · `Blocked`.
