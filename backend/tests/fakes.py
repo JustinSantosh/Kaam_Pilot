@@ -3,7 +3,7 @@
 from app.agent.deps import Deps
 from app.config import Settings
 from app.db.repo import Repo
-from app.schemas.extraction import ExtractedItem, Extraction, IntentResult, Spec
+from app.schemas.extraction import ExtractedItem, Extraction, IntentResult, RiskResult, Spec
 from app.schemas.pricing import Catalog
 from tests.golden import load_golden
 
@@ -61,3 +61,32 @@ class FakeBrain:
             extract=self.extract,
             pdf_dir=settings.storage_dir / "quotes",
         )
+
+
+class RiskyBrain(FakeBrain):
+    """FakeBrain plus an LLM-style risk check and a transcriber, for Phase 10 tests."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.risk_calls: list[str] = []
+        self.transcripts: dict[bytes, str] = {}
+        self.fail_risk = False
+
+    async def classify_risk(self, text: str) -> RiskResult:
+        self.risk_calls.append(text)
+        if self.fail_risk:
+            raise TimeoutError("risk model unavailable")
+        if "you idiot" in text.lower():
+            return RiskResult(risk="abuse", reason="fake")
+        if "pretend you are the owner" in text.lower():
+            return RiskResult(risk="injection", reason="fake")
+        return RiskResult(risk="none", reason="fake")
+
+    async def transcribe(self, audio: bytes, mime_type: str) -> str:
+        return self.transcripts.get(audio, "")
+
+    def deps_factory(self, catalog: Catalog, repo: Repo, settings: Settings) -> Deps:
+        deps = super().deps_factory(catalog, repo, settings)
+        deps.classify_risk = self.classify_risk
+        deps.transcribe = self.transcribe
+        return deps

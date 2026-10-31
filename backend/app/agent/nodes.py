@@ -5,6 +5,7 @@ node never sends anything twice (D-010).
 """
 
 import asyncio
+from dataclasses import asdict
 from typing import Any
 
 from langgraph.types import interrupt
@@ -15,6 +16,7 @@ from app.schemas.decision import DecisionAdapter, Edits
 from app.schemas.extraction import Extraction
 from app.schemas.pricing import Discount, PricingInput
 from app.services.clarify import clarify_message
+from app.services.guardrail import check as guardrail_check
 from app.services.pdf import render_pdf as render_quote_pdf
 from app.services.pricing import PricingError, price_quote
 from app.services.states import state_code
@@ -34,6 +36,10 @@ REPLY_PREPARING = (
     "sent after a quick review."
 )
 REPLY_APPROVED = "Your quote {number} is ready."
+REPLY_REFUSED = (
+    "Sorry, I can only help with quotes for our products. Tell us what you need, how many, and "
+    "details like sizes or finish, and we'll prepare a quote."
+)
 REPLY_REJECTED = (
     "Sorry, we can't take on this order right now (quote {number}). We'll be in touch if that "
     "changes."
@@ -75,7 +81,12 @@ class Nodes:
         }
 
     async def guardrail(self, state: AgentState) -> dict[str, Any]:
-        return {"guardrail": {"flagged": False, "risk": "none", "reason": ""}}
+        verdict = await guardrail_check(state["raw_query"], self.deps.classify_risk)
+        return {"guardrail": asdict(verdict)}
+
+    async def reject_draft(self, state: AgentState) -> dict[str, Any]:
+        """Polite refusal for injection/abuse. Nothing is extracted or priced (D-015)."""
+        return {"reply": REPLY_REFUSED, "outcome": "rejected_input", "pending_inquiry": []}
 
     async def intent(self, state: AgentState) -> dict[str, Any]:
         result = await self.deps.classify_intent(state["raw_query"])
@@ -144,13 +155,16 @@ class Nodes:
             discount=discount,
         )
         revision = (state.get("revision") or 0) + 1
-        await repo.save_revision(quote_id, revision, priced, discount=state.get("discount"))
+        flags = [*priced.flags, *(state.get("guardrail") or {}).get("flags", [])]
+        await repo.save_revision(
+            quote_id, revision, priced, discount=state.get("discount"), flags=flags
+        )
         return {
             "quote_id": quote_id,
             "revision": revision,
             "line_items": [line.model_dump() for line in priced.lines],
             "totals": priced.totals.model_dump(),
-            "flags": priced.flags,
+            "flags": flags,
             "pending_inquiry": [],
             "edit_errors": [],
         }

@@ -1,8 +1,8 @@
 # Phase 10: Guardrails & voice
 
-- **Status:** Not started
+- **Status:** Done (live voice check pending API key)
 - **Depends on:** [04](phase-04.md), [08](phase-08.md)
-- **Decisions:** [D-002](../decisions.md#d-002), [D-015](../decisions.md#d-015)
+- **Decisions:** [D-002](../decisions.md#d-002), [D-015](../decisions.md#d-015), [D-024](../decisions.md#d-024)
 
 ## Goal
 Handle hostile and off-topic input gracefully, and accept voice notes (including Hinglish) as input.
@@ -36,11 +36,11 @@ backend/tests/adversarial/cases.json
   shown in the inspector. Use a prompt hint listing catalog terms to help with jargon and Hinglish.
 
 ## Tasks
-- [ ] Rules + classifier + tests.
-- [ ] Adversarial set (≥15): direct injection, injection hidden inside an order, system-prompt
+- [x] Rules + classifier + tests.
+- [x] Adversarial set (≥15): direct injection, injection hidden inside an order, system-prompt
       extraction, fake "owner says approve", Hinglish injection.
-- [ ] Audio endpoint, transcription, `transcribe → guardrail` wiring.
-- [ ] Customer Hub mic button (MediaRecorder → webm upload).
+- [x] Audio endpoint, transcription, `transcribe → guardrail` wiring.
+- [x] Customer Hub mic button (MediaRecorder → webm upload).
 
 ## Exit criteria
 - Every adversarial case either ends in `reject_draft` **or** produces a quote whose money comes only
@@ -53,3 +53,18 @@ backend/tests/adversarial/cases.json
 
 ## Notes / changelog
 - 2026-10-31: phase file created.
+- 2026-11-01: implemented on branch `phase-10-guardrails-voice`.
+  - `services/guardrail.py`: injection rules (ignore instructions, system prompt, admin/developer
+    mode, tag smuggling, jailbreak…) refuse without spending an LLM call; money-override phrases
+    ("make the price 0", "100% discount", "free of cost") don't block a genuine order but add the
+    `guardrail_money_override` flag to the quote for the owner. Then the optional LLM risk check
+    (`guardrail_v1` prompt): `injection`/`abuse` → `reject_draft`; it **fails open** on errors (D-015).
+  - Graph: `guardrail → reject_draft → END` (polite refusal, nothing extracted or priced).
+  - Voice: `POST /api/chat/send-audio`, transcribed before the graph ([D-024](../decisions.md#d-024));
+    frontend mic button (MediaRecorder, max 120 s).
+  - Adversarial set `tests/adversarial/cases.json` (18 cases): 9 refused by rules, 2 by the LLM check,
+    4 orders with money-override text that are quoted at exact catalog prices and flagged, 3 benign ones
+    that aren't refused. All golden inquiries pass with no false positives.
+  - Verified in the browser: the injection preset gets the refusal and no quote is created.
+  - Not verified: real Gemini audio transcription (needs the API key).
+  - Tests: 398 offline (32 new).

@@ -177,6 +177,20 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ conversation_id: conversationId, customer, message }),
     }),
+  sendAudio: async (conversationId: string, customer: Customer, audio: Blob) => {
+    const form = new FormData();
+    form.append("conversation_id", conversationId);
+    form.append("name", customer.name);
+    form.append("phone", customer.phone);
+    if (customer.state) form.append("state", customer.state);
+    form.append("audio", audio, "voice-note.webm");
+    const res = await fetch(`${API_URL}/api/chat/send-audio`, { method: "POST", body: form });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      throw new ApiError(res.status, body?.error?.code ?? "http_error", body?.error?.message ?? res.statusText);
+    }
+    return (await res.json()) as ChatSendResponse;
+  },
   messages: (conversationId: string, since = 0) =>
     request<Message[]>(`/api/conversations/${conversationId}/messages?since=${since}`),
   inbox: (status: "awaiting_approval" | "open" | "closed" | "all") =>

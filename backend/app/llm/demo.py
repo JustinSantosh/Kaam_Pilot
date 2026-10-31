@@ -33,6 +33,7 @@ SPEC_WORDS = {
 }  # fmt: skip
 COLOURS = {"black": "black", "kaali": "black", "kaala": "black", "white": "white",
            "safed": "white", "navy": "navy"}  # fmt: skip
+DEMO_TRANSCRIPT = "50 hoodies chahiye black, back pe DTF print, sizes M 20 L 20 XL 10"
 PRODUCTS = ("t-shirt", "tshirt", "tee", "hoodie", "polo", "gate", "railing", "wardrobe",
             "almirah", "kitchen", "banner", "flex", "blazer")  # fmt: skip
 
@@ -93,3 +94,7 @@ class DemoBrain:
 
     async def extract(self, text: str) -> Extraction:
         return _known().get(text) or _heuristic(text)
+
+    async def transcribe(self, audio: bytes, mime_type: str) -> str:
+        """Demo mode can't hear; it returns a fixed, clearly labelled transcript."""
+        return DEMO_TRANSCRIPT

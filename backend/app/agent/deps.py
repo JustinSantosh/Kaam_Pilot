@@ -8,11 +8,13 @@ from app.config import Settings
 from app.db.repo import Repo
 from app.llm import functions as llm
 from app.llm.demo import DemoBrain
-from app.schemas.extraction import Extraction, IntentResult
+from app.schemas.extraction import Extraction, IntentResult, RiskResult
 from app.schemas.pricing import Catalog
 
 ClassifyIntent = Callable[[str], Awaitable[IntentResult]]
 Extract = Callable[[str], Awaitable[Extraction]]
+ClassifyRisk = Callable[[str], Awaitable[RiskResult]]
+Transcribe = Callable[[bytes, str], Awaitable[str]]
 
 DEMO_MODEL = "demo"
 
@@ -24,6 +26,8 @@ class Deps:
     settings: Settings
     classify_intent: ClassifyIntent
     extract: Extract
+    classify_risk: ClassifyRisk | None = None  # None → rules-only guardrail (D-015)
+    transcribe: Transcribe | None = None  # None → voice notes are refused
     pdf_dir: Path = field(default=Path("storage/quotes"))
 
 
@@ -36,6 +40,7 @@ def default_deps(catalog: Catalog, repo: Repo, settings: Settings) -> Deps:
             settings=settings,
             classify_intent=brain.classify_intent,
             extract=brain.extract,
+            transcribe=brain.transcribe,
             pdf_dir=settings.storage_dir / "quotes",
         )
 
@@ -48,5 +53,7 @@ def default_deps(catalog: Catalog, repo: Repo, settings: Settings) -> Deps:
         settings=settings,
         classify_intent=llm.classify_intent,
         extract=extract,
+        classify_risk=llm.classify_risk,
+        transcribe=llm.transcribe,
         pdf_dir=settings.storage_dir / "quotes",
     )

@@ -21,15 +21,17 @@ def build_graph(deps: Deps, checkpointer: BaseCheckpointSaver | None = None) -> 
     g = StateGraph(AgentState)
 
     for name in (
-        "ingest", "guardrail", "intent", "extract", "validate", "clarify_draft", "reply_draft",
-        "cancel_handler", "price", "render_pdf", "submit_for_review", "hitl_pause", "apply_edits",
-        "mark_rejected", "dispatch",
+        "ingest", "guardrail", "reject_draft", "intent", "extract", "validate", "clarify_draft",
+        "reply_draft", "cancel_handler", "price", "render_pdf", "submit_for_review", "hitl_pause",
+        "apply_edits", "mark_rejected", "dispatch",
     ):  # fmt: skip
         g.add_node(name, getattr(n, name))
 
     g.add_edge(START, "ingest")
     g.add_edge("ingest", "guardrail")
-    g.add_conditional_edges("guardrail", route_guardrail, {"ok": "intent", "flagged": END})
+    g.add_conditional_edges(
+        "guardrail", route_guardrail, {"ok": "intent", "flagged": "reject_draft"}
+    )
     g.add_conditional_edges(
         "intent",
         route_intent,
@@ -49,7 +51,9 @@ def build_graph(deps: Deps, checkpointer: BaseCheckpointSaver | None = None) -> 
     )
     # D-009: edits are re-priced and re-rendered; invalid edits go back to the owner with errors.
     g.add_conditional_edges("apply_edits", route_edits, {"ok": "price", "invalid": "hitl_pause"})
-    for terminal in ("clarify_draft", "reply_draft", "cancel_handler", "mark_rejected", "dispatch"):
+    terminals = ("reject_draft", "clarify_draft", "reply_draft", "cancel_handler", "mark_rejected",
+                 "dispatch")  # fmt: skip
+    for terminal in terminals:
         g.add_edge(terminal, END)
 
     return g.compile(checkpointer=checkpointer)

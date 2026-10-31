@@ -1,17 +1,20 @@
 """LLM tasks used by the graph. Nodes and tests depend on these, not on a vendor (D-014)."""
 
+import base64
 from functools import lru_cache
 from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.llm import provider
-from app.schemas.extraction import Extraction, IntentResult
+from app.schemas.extraction import Extraction, IntentResult, RiskResult
 from app.schemas.pricing import Catalog
 
 PROMPTS_DIR = Path(__file__).resolve().parent / "prompts"
 INTENT_PROMPT = "intent_v1"
 EXTRACT_PROMPT = "extract_v1"
+GUARDRAIL_PROMPT = "guardrail_v1"
+TRANSCRIBE_PROMPT = "transcribe_v1"
 
 
 @lru_cache
@@ -48,3 +51,27 @@ async def extract(text: str, *, catalog: Catalog) -> Extraction:
     system = load_prompt(EXTRACT_PROMPT).replace("{{VOCABULARY}}", spec_vocabulary(catalog))
     messages = [SystemMessage(system), HumanMessage(wrap_inquiry(text))]
     return await provider.structured(Extraction).ainvoke(messages)
+
+
+async def classify_risk(text: str) -> RiskResult:
+    messages = [SystemMessage(load_prompt(GUARDRAIL_PROMPT)), HumanMessage(wrap_inquiry(text))]
+    return await provider.structured(RiskResult).ainvoke(messages)
+
+
+async def transcribe(audio: bytes, mime_type: str) -> str:
+    """Speech to text with the configured multimodal model (Gemini accepts audio directly).
+
+    The transcript is treated exactly like typed text afterwards: guardrail, intent, extraction.
+    """
+    message = HumanMessage(
+        content=[
+            {"type": "text", "text": load_prompt(TRANSCRIBE_PROMPT)},
+            {
+                "type": "audio",
+                "base64": base64.b64encode(audio).decode("ascii"),
+                "mime_type": mime_type,
+            },
+        ]
+    )
+    result = await provider.get_model().ainvoke([message])
+    return str(result.text if hasattr(result, "text") else result.content).strip()
