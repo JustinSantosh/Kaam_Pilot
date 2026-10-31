@@ -57,7 +57,7 @@ async def test_full_flow(client: httpx.AsyncClient, brain: FakeBrain) -> None:
     approved = await client.post(
         f"/api/quotes/{quote_id}/decision?revision=2", json={"action": "approve"}
     )
-    assert approved.json()["status"] == "approved"
+    assert approved.json()["status"] == "sent"
     assert approved.json()["pdf_url"].endswith("/r2.pdf")
 
     # 5. second approve → 409

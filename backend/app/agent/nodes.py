@@ -12,11 +12,13 @@ from langgraph.types import interrupt
 
 from app.agent.deps import Deps
 from app.agent.state import AgentState
+from app.db.models import utcnow
 from app.schemas.decision import DecisionAdapter, Edits
 from app.schemas.extraction import Extraction
 from app.schemas.pricing import Discount, PricingInput
 from app.services.clarify import clarify_message
 from app.services.guardrail import check as guardrail_check
+from app.services.money import paise_to_display
 from app.services.pdf import render_pdf as render_quote_pdf
 from app.services.pricing import PricingError, price_quote
 from app.services.states import state_code
@@ -35,7 +37,10 @@ REPLY_PREPARING = (
     "Thanks! We have everything we need. Your quote {number} is being prepared and will be "
     "sent after a quick review."
 )
-REPLY_APPROVED = "Your quote {number} is ready."
+REPLY_APPROVED = (
+    "Your quote {number} is ready: {total} including GST. The PDF is attached. Reply YES to "
+    "confirm the order, or tell us what you'd like to change."
+)
 REPLY_REFUSED = (
     "Sorry, I can only help with quotes for our products. Tell us what you need, how many, and "
     "details like sizes or finish, and we'll prepare a quote."
@@ -78,6 +83,7 @@ class Nodes:
             "decision": None,
             "edit_errors": [],
             "reply": "",
+            "reply_kind": "text",
         }
 
     async def guardrail(self, state: AgentState) -> dict[str, Any]:
@@ -120,6 +126,8 @@ class Nodes:
         if quote is None:
             return {"reply": REPLY_NOTHING_TO_CANCEL, "outcome": "cancelled", "pending_inquiry": []}
         await repo.set_status(quote.id, "cancelled", event={"by": "customer"})
+        if self.deps.followups is not None:
+            self.deps.followups.cancel(quote.id)
         return {
             "reply": REPLY_CANCELLED.format(number=quote.number),
             "outcome": "cancelled",
@@ -214,7 +222,12 @@ class Nodes:
             }
         )
         parsed = DecisionAdapter.validate_python(decision)
-        return {"decision": parsed.model_dump(mode="json"), "reply": "", "edit_errors": []}
+        return {
+            "decision": parsed.model_dump(mode="json"),
+            "reply": "",
+            "reply_kind": "text",
+            "edit_errors": [],
+        }
 
     async def apply_edits(self, state: AgentState) -> dict[str, Any]:
         """Turn the owner's structured edits into new pricing inputs, or explain why not."""
@@ -263,11 +276,22 @@ class Nodes:
         return {"reply": REPLY_REJECTED.format(number=quote.number), "outcome": "rejected"}
 
     async def dispatch(self, state: AgentState) -> dict[str, Any]:
-        # Phase 11 adds sending the PDF link and the follow-up timer.
-        final_pdf = await self._render(state["quote_id"], draft=False)
-        quote = await self.deps.repo.set_status(state["quote_id"], "approved", pdf_path=final_pdf)
+        """Approved: render the final PDF, send it, arm the follow-up. Idempotent (D-010)."""
+        repo, quote_id = self.deps.repo, state["quote_id"]
+        current = await repo.get_quote(quote_id)
+        if current.sent_at is not None:  # already dispatched; never send twice
+            return {"reply": "", "outcome": "approved"}
+        final_pdf = await self._render(quote_id, draft=False)
+        await repo.set_status(quote_id, "approved", pdf_path=final_pdf)
+        quote = await repo.set_status(quote_id, "sent", sent_at=utcnow())
+        if self.deps.followups is not None:
+            when = self.deps.followups.schedule(quote_id)
+            await repo.add_event(quote_id, "followup_scheduled", {"at": when.isoformat()})
         return {
-            "reply": REPLY_APPROVED.format(number=quote.number),
+            "reply": REPLY_APPROVED.format(
+                number=quote.number, total=paise_to_display(quote.total_paise)
+            ),
+            "reply_kind": "quote",
             "outcome": "approved",
             "pdf_path": final_pdf,
         }
