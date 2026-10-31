@@ -58,6 +58,7 @@ way it does, what it costs, and why the obvious alternatives were rejected.
 | [D-016](#d-016) | Frontend polls; SSE later | Accepted | 08, 09 |
 | [D-017](#d-017) | Eval metrics: per-field F1 + total correctness | Accepted | 12 |
 | [D-018](#d-018) | Discount split by largest remainder; tax rounded per line | Accepted | 02 |
+| [D-019](#d-019) | Billable quantity from dimensions is computed in code | Accepted | 03 |
 
 ---
 
@@ -375,3 +376,25 @@ way it does, what it costs, and why the obvious alternatives were rejected.
   - *Leftover to the largest line*: can make a small line's taxable value negative (see Context).
   - *Round each share independently*: shares may not add up to the discount.
   - *Round tax once per quote*: the quote's tax can no longer be traced to individual lines on the document.
+
+<a id="d-019"></a>
+## D-019: Billable quantity from dimensions is computed in code
+- **Date:** 2026-10-31 · **Status:** Accepted · **Phase:** [03](phases/phase-03.md)
+- **Context:** Gates, wardrobes and banners are priced per sqft and railings per running foot, but
+  customers give dimensions ("12 ft wide, 6 ft high", "2 almirah 8x7"), not areas. Asking the LLM to
+  multiply would bring back the arithmetic errors D-002 exists to prevent.
+- **Decision:** The extraction prompt tells the LLM to record the **number of pieces** (or null) and
+  put dimensions in `width_ft` / `height_ft` / `length_rft` specs. `validator._derive_quantity()` computes
+  `pieces × width × height` (sqft) or `pieces × length` (rft), rounds **up** to a whole unit, and adds
+  a note such as "112 sqft = 2 × 8 ft × 7 ft (rounded up)" for the owner. Without dimensions, the stated
+  number is used as is.
+- **Why it matters:** Area is the biggest multiplier on these quotes. A wrong area means a wrong total,
+  and the owner might not notice.
+- **Effects:**
+  - The owner sees how each derived quantity was calculated in the inspector (Phase 09).
+  - "2 wardrobes" without dimensions is treated as 2 sqft and fails MOQ, which prompts a clarification
+    instead of a guess.
+  - Rounding up favours the business by under one unit; the owner can edit it (D-009).
+- **Why not:**
+  - *LLM computes area*: violates D-002; multiplication errors on the most expensive lines.
+  - *Ask the customer for sqft directly*: customers don't think in sqft; it adds a round-trip.

@@ -1,0 +1,116 @@
+[
+  {
+    "id": "clean-apparel",
+    "input": "Need 100 black round neck t-shirts, sizes S:20 M:40 L:40, screen print on front. Delivery by 20th Nov. We are in Raipur.",
+    "ideal_extraction": {
+      "items": [
+        {"item_text": "black round-neck t-shirt", "quantity": 100,
+         "specs": [{"name": "size_mix", "value": "S:20, M:40, L:40"}, {"name": "print_type", "value": "screen"}, {"name": "placement", "value": "front"}]}
+      ],
+      "delivery_by": "by 20th Nov",
+      "customer_state": "Chhattisgarh"
+    },
+    "expected": {"complete": true, "items": [{"sku": "TEE-RN-BLK", "quantity": 100, "missing": []}]}
+  },
+  {
+    "id": "hinglish-two-colours",
+    "input": "bhaiya 40 kaali tee aur 20 safed, front pe logo kadhai wala, sizes baad me batata hu",
+    "ideal_extraction": {
+      "items": [
+        {"item_text": "black round-neck t-shirt", "quantity": 40,
+         "specs": [{"name": "placement", "value": "front"}, {"name": "print_type", "value": "embroidery"}]},
+        {"item_text": "white round-neck t-shirt", "quantity": 20,
+         "specs": [{"name": "placement", "value": "front"}, {"name": "print_type", "value": "embroidery"}],
+         "notes": "sizes will be shared later"}
+      ]
+    },
+    "expected": {"complete": false, "items": [
+      {"sku": "TEE-RN-BLK", "quantity": 40, "missing": ["size_mix"]},
+      {"sku": "TEE-RN-WHT", "quantity": 20, "missing": ["size_mix"]}
+    ]}
+  },
+  {
+    "id": "hoodie-dtf",
+    "input": "50 hoodies chahiye black, back pe DTF print, sizes M 20 L 20 XL 10",
+    "ideal_extraction": {
+      "items": [
+        {"item_text": "black hoodie", "quantity": 50,
+         "specs": [{"name": "size_mix", "value": "M:20, L:20, XL:10"}, {"name": "print_type", "value": "dtf"}, {"name": "placement", "value": "back"}]}
+      ]
+    },
+    "expected": {"complete": true, "items": [{"sku": "HOOD-BLK", "quantity": 50, "missing": []}]}
+  },
+  {
+    "id": "polo-embroidery-mumbai",
+    "input": "Quote for 30 navy polos with embroidered logo on chest, sizes: M-10, L-10, XL-10. Office in Mumbai.",
+    "ideal_extraction": {
+      "items": [
+        {"item_text": "navy polo t-shirt", "quantity": 30,
+         "specs": [{"name": "size_mix", "value": "M:10, L:10, XL:10"}, {"name": "print_type", "value": "embroidery"}, {"name": "placement", "value": "chest"}]}
+      ],
+      "customer_state": "Maharashtra"
+    },
+    "expected": {"complete": true, "items": [{"sku": "POLO-NVY", "quantity": 30, "missing": []}]}
+  },
+  {
+    "id": "gate-dimensions",
+    "input": "Main gate banwana hai, 12 ft wide 6 ft high, simple design, powder coating chahiye",
+    "ideal_extraction": {
+      "items": [
+        {"item_text": "ms gate", "quantity": null,
+         "specs": [{"name": "width_ft", "value": "12"}, {"name": "height_ft", "value": "6"}, {"name": "design", "value": "simple"}, {"name": "finish", "value": "powder_coat"}]}
+      ]
+    },
+    "expected": {"complete": true, "items": [{"sku": "GATE-MS", "quantity": 72, "missing": []}]}
+  },
+  {
+    "id": "railing-missing-glass",
+    "input": "SS railing for balcony, around 24 running feet. Rate?",
+    "ideal_extraction": {
+      "items": [
+        {"item_text": "ss balcony railing", "quantity": null,
+         "specs": [{"name": "length_rft", "value": "24"}]}
+      ]
+    },
+    "expected": {"complete": false, "items": [{"sku": "RAIL-SS", "quantity": 24, "missing": ["glass"]}]}
+  },
+  {
+    "id": "wardrobe-pieces",
+    "input": "2 almirah banwani hai 8x7 feet, sliding shutter, laminate white",
+    "ideal_extraction": {
+      "items": [
+        {"item_text": "laminated wardrobe", "quantity": 2,
+         "specs": [{"name": "width_ft", "value": "8"}, {"name": "height_ft", "value": "7"}, {"name": "shutter", "value": "sliding"}, {"name": "laminate", "value": "white"}]}
+      ]
+    },
+    "expected": {"complete": true, "items": [{"sku": "WARD-LAM", "quantity": 112, "missing": []}]}
+  },
+  {
+    "id": "ambiguous-tshirt",
+    "input": "price for 50 t-shirts with our logo",
+    "ideal_extraction": {
+      "items": [{"item_text": "t-shirt", "quantity": 50, "specs": [], "notes": "with our logo"}]
+    },
+    "expected": {"complete": false, "items": [{"sku": null, "quantity": 50, "missing": []}]}
+  },
+  {
+    "id": "unknown-product",
+    "input": "100 coffee mugs with company print, how much?",
+    "ideal_extraction": {
+      "items": [{"item_text": "coffee mug", "quantity": 100, "specs": []}]
+    },
+    "expected": {"complete": false, "items": [{"sku": null, "quantity": 100, "missing": []}]}
+  },
+  {
+    "id": "flex-pieces",
+    "input": "flex banner 10 ft x 4 ft, star flex, 5 pieces, urgent",
+    "ideal_extraction": {
+      "items": [
+        {"item_text": "flex banner", "quantity": 5,
+         "specs": [{"name": "width_ft", "value": "10"}, {"name": "height_ft", "value": "4"}, {"name": "material", "value": "star flex"}]}
+      ],
+      "delivery_by": "urgent"
+    },
+    "expected": {"complete": true, "items": [{"sku": "FLEX-BNR", "quantity": 200, "missing": []}]}
+  }
+]

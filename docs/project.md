@@ -147,9 +147,9 @@ Key differences from the original draft (each recorded as a decision):
 ```python
 # What the LLM is allowed to produce. No money fields at all. (D-002, D-003)
 class ExtractedItem(BaseModel):
-    item_text: str                      # customer's words, e.g. "black round neck tee"
-    quantity: int | None                # None = not stated
-    specs: dict[str, str] = {}          # color, size_mix, print_type, placement, material…
+    item_text: str                      # short English description, e.g. "black round-neck t-shirt"
+    quantity: int | None                # pieces as stated; None = not stated (area/length: D-019)
+    specs: list[Spec] = []              # {name, value} pairs; names from the catalog vocabulary
     notes: str | None = None
 
 class Extraction(BaseModel):
@@ -301,7 +301,8 @@ kaampilot/
 │   │   ├── services/
 │   │   │   ├── catalog.py           # load + validate catalog.json
 │   │   │   ├── matcher.py           # SKU fuzzy matching
-│   │   │   ├── validator.py         # completeness rules
+│   │   │   ├── validator.py         # completeness rules + quantity from dimensions
+│   │   │   ├── clarify.py           # questions for the customer, built from validation
 │   │   │   ├── money.py             # paise rounding + ₹ display
 │   │   │   ├── pricing.py           # deterministic math
 │   │   │   ├── pdf.py               # template → PDF
@@ -337,7 +338,7 @@ kaampilot/
 |---|---|---|
 | [01](phases/phase-01.md) | Foundations & project docs | Done |
 | [02](phases/phase-02.md) | Catalog & deterministic pricing | Done |
-| [03](phases/phase-03.md) | Schemas & LLM extraction | Not started |
+| [03](phases/phase-03.md) | Schemas & LLM extraction | Done (model choice pending) |
 | [04](phases/phase-04.md) | Graph core & persistence | Not started |
 | [05](phases/phase-05.md) | Human-in-the-loop | Not started |
 | [06](phases/phase-06.md) | Quotation PDF | Not started |
