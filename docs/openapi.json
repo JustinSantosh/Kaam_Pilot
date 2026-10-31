@@ -1,0 +1,1172 @@
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "KaamPilot",
+  "version": "0.1.0"
+ },
+ "paths": {
+  "/api/chat/send": {
+   "post": {
+    "tags": [
+     "customer"
+    ],
+    "summary": "Send",
+    "operationId": "send_api_chat_send_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ChatSendRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ChatSendResponse"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/conversations/{conversation_id}/messages": {
+   "get": {
+    "tags": [
+     "customer"
+    ],
+    "summary": "Messages",
+    "description": "Polled by the Customer Hub (D-016); `since` is the last message id the client has.",
+    "operationId": "messages_api_conversations__conversation_id__messages_get",
+    "parameters": [
+     {
+      "name": "conversation_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Conversation Id"
+      }
+     },
+     {
+      "name": "since",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 0,
+       "default": 0,
+       "title": "Since"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/MessageOut"
+         },
+         "title": "Response Messages Api Conversations  Conversation Id  Messages Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/business/inbox": {
+   "get": {
+    "tags": [
+     "business"
+    ],
+    "summary": "Inbox",
+    "operationId": "inbox_api_business_inbox_get",
+    "parameters": [
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "pattern": "^(awaiting_approval|open|closed|all)$",
+       "default": "awaiting_approval",
+       "title": "Status"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/QuoteSummary"
+         },
+         "title": "Response Inbox Api Business Inbox Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/business/catalog": {
+   "get": {
+    "tags": [
+     "business"
+    ],
+    "summary": "Catalog",
+    "description": "For the owner's edit drawer: which SKUs exist and which spec options they allow.",
+    "operationId": "catalog_api_business_catalog_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/CatalogOption"
+         },
+         "type": "array",
+         "title": "Response Catalog Api Business Catalog Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/quotes/{quote_id}": {
+   "get": {
+    "tags": [
+     "business"
+    ],
+    "summary": "Get Quote",
+    "operationId": "get_quote_api_quotes__quote_id__get",
+    "parameters": [
+     {
+      "name": "quote_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Quote Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/QuoteDetail"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/quotes/{quote_id}/decision": {
+   "post": {
+    "tags": [
+     "business"
+    ],
+    "summary": "Decide",
+    "description": "Approve, reject (with reason) or edit (structured changes; never a raw total, D-009).",
+    "operationId": "decide_api_quotes__quote_id__decision_post",
+    "parameters": [
+     {
+      "name": "quote_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Quote Id"
+      }
+     },
+     {
+      "name": "revision",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "minimum": 1
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Revision the owner was looking at",
+       "title": "Revision"
+      },
+      "description": "Revision the owner was looking at"
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "oneOf": [
+         {
+          "$ref": "#/components/schemas/Approve"
+         },
+         {
+          "$ref": "#/components/schemas/Reject"
+         },
+         {
+          "$ref": "#/components/schemas/Edit"
+         }
+        ],
+        "discriminator": {
+         "propertyName": "action",
+         "mapping": {
+          "approve": "#/components/schemas/Approve",
+          "reject": "#/components/schemas/Reject",
+          "edit": "#/components/schemas/Edit"
+         }
+        },
+        "title": "Decision"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/QuoteDetail"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/health": {
+   "get": {
+    "summary": "Health",
+    "operationId": "health_health_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": {
+          "type": "string"
+         },
+         "type": "object",
+         "title": "Response Health Health Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Approve": {
+    "properties": {
+     "action": {
+      "type": "string",
+      "const": "approve",
+      "title": "Action"
+     }
+    },
+    "type": "object",
+    "required": [
+     "action"
+    ],
+    "title": "Approve"
+   },
+   "CatalogOption": {
+    "properties": {
+     "sku": {
+      "type": "string",
+      "title": "Sku"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "category": {
+      "type": "string",
+      "title": "Category"
+     },
+     "unit": {
+      "type": "string",
+      "title": "Unit"
+     },
+     "moq": {
+      "type": "integer",
+      "title": "Moq"
+     },
+     "required_specs": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Required Specs"
+     },
+     "spec_options": {
+      "additionalProperties": {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      "type": "object",
+      "title": "Spec Options"
+     }
+    },
+    "type": "object",
+    "required": [
+     "sku",
+     "name",
+     "category",
+     "unit",
+     "moq",
+     "required_specs",
+     "spec_options"
+    ],
+    "title": "CatalogOption"
+   },
+   "ChatSendRequest": {
+    "properties": {
+     "conversation_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$",
+      "title": "Conversation Id"
+     },
+     "customer": {
+      "$ref": "#/components/schemas/CustomerIn"
+     },
+     "message": {
+      "type": "string",
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Message"
+     }
+    },
+    "type": "object",
+    "required": [
+     "conversation_id",
+     "message"
+    ],
+    "title": "ChatSendRequest"
+   },
+   "ChatSendResponse": {
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "awaiting_approval",
+       "needs_clarification",
+       "completed",
+       "rejected",
+       "busy"
+      ],
+      "title": "Status"
+     },
+     "reply": {
+      "type": "string",
+      "title": "Reply"
+     },
+     "quote_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Quote Id"
+     },
+     "conversation_id": {
+      "type": "string",
+      "title": "Conversation Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status",
+     "reply",
+     "quote_id",
+     "conversation_id"
+    ],
+    "title": "ChatSendResponse"
+   },
+   "CustomerIn": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 200,
+      "title": "Name",
+      "default": ""
+     },
+     "phone": {
+      "type": "string",
+      "maxLength": 40,
+      "title": "Phone",
+      "default": ""
+     },
+     "state": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 60
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "State"
+     }
+    },
+    "type": "object",
+    "title": "CustomerIn"
+   },
+   "Discount": {
+    "properties": {
+     "kind": {
+      "type": "string",
+      "enum": [
+       "flat",
+       "percent"
+      ],
+      "title": "Kind"
+     },
+     "value": {
+      "type": "integer",
+      "minimum": 0.0,
+      "title": "Value"
+     }
+    },
+    "type": "object",
+    "required": [
+     "kind",
+     "value"
+    ],
+    "title": "Discount",
+    "description": "Owner-applied discount (D-009). `value` is paise for flat, basis points for percent."
+   },
+   "Edit": {
+    "properties": {
+     "action": {
+      "type": "string",
+      "const": "edit",
+      "title": "Action"
+     },
+     "edits": {
+      "$ref": "#/components/schemas/Edits"
+     }
+    },
+    "type": "object",
+    "required": [
+     "action",
+     "edits"
+    ],
+    "title": "Edit"
+   },
+   "Edits": {
+    "properties": {
+     "items": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/components/schemas/ItemEdit"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Items",
+      "description": "Full replacement list of lines; omit to keep the lines"
+     },
+     "discount": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Discount"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "remove_discount": {
+      "type": "boolean",
+      "title": "Remove Discount",
+      "default": false
+     }
+    },
+    "type": "object",
+    "title": "Edits"
+   },
+   "EventOut": {
+    "properties": {
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "payload": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Payload"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "kind",
+     "payload",
+     "created_at"
+    ],
+    "title": "EventOut"
+   },
+   "HTTPValidationError": {
+    "properties": {
+     "detail": {
+      "items": {
+       "$ref": "#/components/schemas/ValidationError"
+      },
+      "type": "array",
+      "title": "Detail"
+     }
+    },
+    "type": "object",
+    "title": "HTTPValidationError"
+   },
+   "ItemEdit": {
+    "properties": {
+     "sku": {
+      "type": "string",
+      "title": "Sku"
+     },
+     "quantity": {
+      "type": "integer",
+      "exclusiveMinimum": 0.0,
+      "title": "Quantity"
+     },
+     "specs": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "type": "string"
+        },
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Specs"
+     }
+    },
+    "type": "object",
+    "required": [
+     "sku",
+     "quantity"
+    ],
+    "title": "ItemEdit"
+   },
+   "MessageOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "role": {
+      "type": "string",
+      "title": "Role"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "quote_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Quote Id"
+     },
+     "pdf_url": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pdf Url"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "role",
+     "text",
+     "kind",
+     "quote_id",
+     "created_at"
+    ],
+    "title": "MessageOut"
+   },
+   "PricedLineItem": {
+    "properties": {
+     "sku": {
+      "type": "string",
+      "title": "Sku"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "hsn": {
+      "type": "string",
+      "title": "Hsn"
+     },
+     "unit": {
+      "type": "string",
+      "title": "Unit"
+     },
+     "quantity": {
+      "type": "integer",
+      "title": "Quantity"
+     },
+     "specs": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object",
+      "title": "Specs"
+     },
+     "unit_price_paise": {
+      "type": "integer",
+      "title": "Unit Price Paise"
+     },
+     "setup_fee_paise": {
+      "type": "integer",
+      "title": "Setup Fee Paise"
+     },
+     "line_subtotal_paise": {
+      "type": "integer",
+      "title": "Line Subtotal Paise"
+     },
+     "discount_paise": {
+      "type": "integer",
+      "title": "Discount Paise"
+     },
+     "taxable_paise": {
+      "type": "integer",
+      "title": "Taxable Paise"
+     },
+     "gst_rate_bp": {
+      "type": "integer",
+      "title": "Gst Rate Bp"
+     },
+     "cgst_paise": {
+      "type": "integer",
+      "title": "Cgst Paise"
+     },
+     "sgst_paise": {
+      "type": "integer",
+      "title": "Sgst Paise"
+     },
+     "igst_paise": {
+      "type": "integer",
+      "title": "Igst Paise"
+     },
+     "line_total_paise": {
+      "type": "integer",
+      "title": "Line Total Paise"
+     }
+    },
+    "type": "object",
+    "required": [
+     "sku",
+     "name",
+     "hsn",
+     "unit",
+     "quantity",
+     "specs",
+     "unit_price_paise",
+     "setup_fee_paise",
+     "line_subtotal_paise",
+     "discount_paise",
+     "taxable_paise",
+     "gst_rate_bp",
+     "cgst_paise",
+     "sgst_paise",
+     "igst_paise",
+     "line_total_paise"
+    ],
+    "title": "PricedLineItem"
+   },
+   "QuoteDetail": {
+    "properties": {
+     "quote_id": {
+      "type": "string",
+      "title": "Quote Id"
+     },
+     "number": {
+      "type": "string",
+      "title": "Number"
+     },
+     "conversation_id": {
+      "type": "string",
+      "title": "Conversation Id"
+     },
+     "customer_name": {
+      "type": "string",
+      "title": "Customer Name"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "revision": {
+      "type": "integer",
+      "title": "Revision"
+     },
+     "total_paise": {
+      "type": "integer",
+      "title": "Total Paise"
+     },
+     "item_count": {
+      "type": "integer",
+      "title": "Item Count"
+     },
+     "flags": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Flags"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     },
+     "customer_phone": {
+      "type": "string",
+      "title": "Customer Phone"
+     },
+     "customer_state": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Customer State"
+     },
+     "supply_type": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Supply Type"
+     },
+     "raw_query": {
+      "type": "string",
+      "title": "Raw Query"
+     },
+     "extraction": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Extraction"
+     },
+     "validation": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Validation"
+     },
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/PricedLineItem"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "totals": {
+      "$ref": "#/components/schemas/QuoteTotals"
+     },
+     "discount": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Discount"
+     },
+     "pdf_url": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pdf Url"
+     },
+     "rejection_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rejection Reason"
+     },
+     "customer_notes": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Customer Notes"
+     },
+     "edit_errors": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Edit Errors"
+     },
+     "revisions": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Revisions"
+     },
+     "events": {
+      "items": {
+       "$ref": "#/components/schemas/EventOut"
+      },
+      "type": "array",
+      "title": "Events"
+     }
+    },
+    "type": "object",
+    "required": [
+     "quote_id",
+     "number",
+     "conversation_id",
+     "customer_name",
+     "status",
+     "revision",
+     "total_paise",
+     "item_count",
+     "flags",
+     "created_at",
+     "updated_at",
+     "customer_phone",
+     "customer_state",
+     "supply_type",
+     "raw_query",
+     "extraction",
+     "validation",
+     "items",
+     "totals",
+     "discount",
+     "pdf_url",
+     "rejection_reason",
+     "customer_notes",
+     "edit_errors",
+     "revisions",
+     "events"
+    ],
+    "title": "QuoteDetail"
+   },
+   "QuoteSummary": {
+    "properties": {
+     "quote_id": {
+      "type": "string",
+      "title": "Quote Id"
+     },
+     "number": {
+      "type": "string",
+      "title": "Number"
+     },
+     "conversation_id": {
+      "type": "string",
+      "title": "Conversation Id"
+     },
+     "customer_name": {
+      "type": "string",
+      "title": "Customer Name"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "revision": {
+      "type": "integer",
+      "title": "Revision"
+     },
+     "total_paise": {
+      "type": "integer",
+      "title": "Total Paise"
+     },
+     "item_count": {
+      "type": "integer",
+      "title": "Item Count"
+     },
+     "flags": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Flags"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "quote_id",
+     "number",
+     "conversation_id",
+     "customer_name",
+     "status",
+     "revision",
+     "total_paise",
+     "item_count",
+     "flags",
+     "created_at",
+     "updated_at"
+    ],
+    "title": "QuoteSummary"
+   },
+   "QuoteTotals": {
+    "properties": {
+     "subtotal_paise": {
+      "type": "integer",
+      "title": "Subtotal Paise"
+     },
+     "discount_paise": {
+      "type": "integer",
+      "title": "Discount Paise"
+     },
+     "taxable_paise": {
+      "type": "integer",
+      "title": "Taxable Paise"
+     },
+     "cgst_paise": {
+      "type": "integer",
+      "title": "Cgst Paise"
+     },
+     "sgst_paise": {
+      "type": "integer",
+      "title": "Sgst Paise"
+     },
+     "igst_paise": {
+      "type": "integer",
+      "title": "Igst Paise"
+     },
+     "tax_paise": {
+      "type": "integer",
+      "title": "Tax Paise"
+     },
+     "total_paise": {
+      "type": "integer",
+      "title": "Total Paise"
+     }
+    },
+    "type": "object",
+    "required": [
+     "subtotal_paise",
+     "discount_paise",
+     "taxable_paise",
+     "cgst_paise",
+     "sgst_paise",
+     "igst_paise",
+     "tax_paise",
+     "total_paise"
+    ],
+    "title": "QuoteTotals"
+   },
+   "Reject": {
+    "properties": {
+     "action": {
+      "type": "string",
+      "const": "reject",
+      "title": "Action"
+     },
+     "reason": {
+      "type": "string",
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "Reason"
+     }
+    },
+    "type": "object",
+    "required": [
+     "action",
+     "reason"
+    ],
+    "title": "Reject"
+   },
+   "ValidationError": {
+    "properties": {
+     "loc": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        }
+       ]
+      },
+      "type": "array",
+      "title": "Location"
+     },
+     "msg": {
+      "type": "string",
+      "title": "Message"
+     },
+     "type": {
+      "type": "string",
+      "title": "Error Type"
+     },
+     "input": {
+      "title": "Input"
+     },
+     "ctx": {
+      "type": "object",
+      "title": "Context"
+     }
+    },
+    "type": "object",
+    "required": [
+     "loc",
+     "msg",
+     "type"
+    ],
+    "title": "ValidationError"
+   }
+  }
+ }
+}

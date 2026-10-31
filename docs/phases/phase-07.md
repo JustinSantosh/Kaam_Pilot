@@ -1,6 +1,6 @@
 # Phase 07: API layer
 
-- **Status:** Not started
+- **Status:** Done
 - **Depends on:** [05](phase-05.md), [06](phase-06.md)
 - **Decisions:** [D-007](../decisions.md#d-007), [D-008](../decisions.md#d-008), [D-011](../decisions.md#d-011), [D-016](../decisions.md#d-016)
 
@@ -25,12 +25,12 @@ backend/tests/test_api_flow.py
 ```
 
 ## Tasks
-- [ ] All routes `async def`, using `runtime.py` from Phase 05 (no graph logic in routes).
-- [ ] Inbox and detail read from the **records DB**, never from checkpoints ([D-007](../decisions.md#d-007)).
-- [ ] `messages?since=<id>` cursor for cheap polling ([D-016](../decisions.md#d-016)).
-- [ ] Decision on a quote that isn't `awaiting_approval` → 409 `quote_not_pending`.
-- [ ] Decision for a stale revision (client sends `revision`) → 409 `stale_revision`.
-- [ ] Generate `openapi.json`; optionally generate TS types for the frontend (`openapi-typescript`).
+- [x] All routes `async def`, using `runtime.py` from Phase 05 (no graph logic in routes).
+- [x] Inbox and detail read from the **records DB**, never from checkpoints ([D-007](../decisions.md#d-007)).
+- [x] `messages?since=<id>` cursor for cheap polling ([D-016](../decisions.md#d-016)).
+- [x] Decision on a quote that isn't `awaiting_approval` → 409 `quote_not_pending`.
+- [x] Decision for a stale revision (client sends `revision`) → 409 `stale_revision`.
+- [x] Generate `openapi.json`; optionally generate TS types for the frontend (`openapi-typescript`).
 
 ## Exit criteria
 `httpx` end-to-end test with mocked LLM:
@@ -46,3 +46,14 @@ backend/tests/test_api_flow.py
 
 ## Notes / changelog
 - 2026-10-31: phase file created.
+- 2026-11-01: implemented on branch `phase-07-api`.
+  - Routes: `POST /api/chat/send`, `GET /api/conversations/{id}/messages?since=`,
+    `GET /api/business/inbox?status=`, `GET /api/business/catalog`, `GET /api/quotes/{id}`,
+    `POST /api/quotes/{id}/decision?revision=`, `GET /files/quotes/...`. All are thin and go through
+    `Runtime` / `Repo`.
+  - Inbox and detail read the records DB. The only value taken from the paused run is `edit_errors`.
+  - One error shape (`api/errors.py`); 409 for `quote_not_pending` / `stale_revision`, 503 when no LLM is configured.
+  - `docs/openapi.json` generated from the app for the frontend.
+  - Not done: auth (single-business demo; listed under known limits in Phase 13).
+  - Tests: 357 offline (7 new), including the full HTTP flow: clarify → complete → inbox → detail →
+    PDF → edit → approve → 409.

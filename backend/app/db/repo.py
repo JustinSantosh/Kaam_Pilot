@@ -53,6 +53,24 @@ class Repo:
         async with self.sessions() as s:
             return await s.get(Conversation, conversation_id)
 
+    async def conversations(self, ids: Iterable[str]) -> dict[str, Conversation]:
+        ids = list(set(ids))
+        if not ids:
+            return {}
+        async with self.sessions() as s:
+            rows = await s.scalars(select(Conversation).where(Conversation.id.in_(ids)))
+            return {c.id: c for c in rows}
+
+    async def revisions(self, quote_id: str) -> list[int]:
+        async with self.sessions() as s:
+            rows = await s.scalars(
+                select(QuoteItem.revision)
+                .where(QuoteItem.quote_id == quote_id)
+                .distinct()
+                .order_by(QuoteItem.revision)
+            )
+            return list(rows)
+
     async def add_message(
         self,
         conversation_id: str,
