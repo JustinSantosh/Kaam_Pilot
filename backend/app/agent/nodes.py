@@ -4,6 +4,7 @@ Customer-facing messages are not written here; the runtime stores `reply` after 
 node never sends anything twice (D-010).
 """
 
+import asyncio
 from typing import Any
 
 from langgraph.types import interrupt
@@ -14,6 +15,7 @@ from app.schemas.decision import DecisionAdapter, Edits
 from app.schemas.extraction import Extraction
 from app.schemas.pricing import Discount, PricingInput
 from app.services.clarify import clarify_message
+from app.services.pdf import render_pdf as render_quote_pdf
 from app.services.pricing import PricingError, price_quote
 from app.services.states import state_code
 from app.services.validator import ValidationResult, validate
@@ -153,9 +155,19 @@ class Nodes:
             "edit_errors": [],
         }
 
+    async def _render(self, quote_id: str, *, draft: bool) -> str:
+        repo = self.deps.repo
+        quote = await repo.get_quote(quote_id)
+        items = await repo.get_items(quote_id)
+        conversation = await repo.get_conversation(quote.conversation_id)
+        rel = await asyncio.to_thread(
+            render_quote_pdf, quote, items, conversation, self.deps.settings, draft=draft
+        )
+        return rel.as_posix()
+
     async def render_pdf(self, state: AgentState) -> dict[str, Any]:
-        # Phase 06 replaces this stub with real rendering.
-        return {"pdf_path": None}
+        """Draft PDF for the owner's review; the final one is rendered on approval."""
+        return {"pdf_path": await self._render(state["quote_id"], draft=True)}
 
     # --- human in the loop (Phase 05) -------------------------------------------------------------
 
@@ -238,8 +250,13 @@ class Nodes:
 
     async def dispatch(self, state: AgentState) -> dict[str, Any]:
         # Phase 11 adds sending the PDF link and the follow-up timer.
-        quote = await self.deps.repo.set_status(state["quote_id"], "approved")
-        return {"reply": REPLY_APPROVED.format(number=quote.number), "outcome": "approved"}
+        final_pdf = await self._render(state["quote_id"], draft=False)
+        quote = await self.deps.repo.set_status(state["quote_id"], "approved", pdf_path=final_pdf)
+        return {
+            "reply": REPLY_APPROVED.format(number=quote.number),
+            "outcome": "approved",
+            "pdf_path": final_pdf,
+        }
 
 
 def route_decision(state: AgentState) -> str:

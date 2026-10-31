@@ -15,8 +15,9 @@ def apply_bp(amount_paise: int, rate_bp: int | Decimal) -> int:
     return round_paise(Decimal(amount_paise) * Decimal(rate_bp) / BP_DENOMINATOR)
 
 
-def paise_to_display(paise: int) -> str:
-    """Format with Indian digit grouping: 123900050 → '₹12,39,000.50'."""
+def paise_to_display(paise: int, symbol: str = "₹") -> str:
+    """Format with Indian digit grouping: 123900050 → '₹12,39,000.50'. PDFs pass 'Rs. '
+    because the built-in PDF fonts have no ₹ glyph (D-021)."""
     sign = "-" if paise < 0 else ""
     rupees, rem = divmod(abs(paise), 100)
     digits = str(rupees)
@@ -29,4 +30,4 @@ def paise_to_display(paise: int) -> str:
         if head:
             groups.insert(0, head)
         digits = ",".join([*groups, tail])
-    return f"{sign}₹{digits}.{rem:02d}"
+    return f"{sign}{symbol}{digits}.{rem:02d}"
