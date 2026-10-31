@@ -406,8 +406,11 @@ Its configuration lives in [`.coderabbit.yaml`](../.coderabbit.yaml).
 1. Branch per phase from `main`: `phase-03-extraction`, `phase-04-graph`, …
 2. Commit in small steps; push the branch and open a PR early (mark it ready for review when
    tests pass; draft PRs aren't reviewed).
-3. CodeRabbit posts a summary and review on the PR, then **re-reviews every new commit pushed to it**.
-   It sets a commit status on each commit, so the PR's commit list shows which commits were reviewed.
+3. **Trigger the review manually**: comment `@coderabbitai review` on the PR (or tick "Trigger review"
+   in CodeRabbit's first comment). CodeRabbit skips automatic reviews on public repos with fewer
+   than 10 stars, so the `auto_review` settings in `.coderabbit.yaml` only take effect after that.
+   After each batch of new commits, comment `@coderabbitai review` again; it reviews only what's new.
+   Use `@coderabbitai full review` to review the whole PR from scratch.
 4. Reply to a comment with `@coderabbitai` to discuss it, `@coderabbitai review` to re-run a review, or
    `@coderabbitai pause` / `resume` to stop or restart reviews on that PR.
 5. Merge when CodeRabbit's comments are resolved and `pytest` + `ruff` pass; update the phase file and
