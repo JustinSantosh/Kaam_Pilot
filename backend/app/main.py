@@ -1,23 +1,51 @@
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator, Callable
+from contextlib import AsyncExitStack, asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 from app import __version__
+from app.agent.deps import Deps, default_deps
+from app.agent.graph import build_graph
 from app.config import Settings, get_settings
+from app.db.repo import Repo
+from app.db.session import (
+    CHECKPOINTS_DB,
+    create_tables,
+    make_engine,
+    make_sessionmaker,
+    records_url,
+)
+from app.schemas.pricing import Catalog
 from app.services.catalog import load_catalog
 
+DepsFactory = Callable[[Catalog, Repo, Settings], Deps]
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+
+def create_app(
+    settings: Settings | None = None, deps_factory: DepsFactory | None = None
+) -> FastAPI:
     settings = settings or get_settings()
+    make_deps = deps_factory or default_deps
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         settings.storage_dir.mkdir(parents=True, exist_ok=True)
         app.state.catalog = load_catalog()  # invalid catalog → fail at startup, not on a quote
-        # Later phases open the records DB, checkpointer (Phase 04) and scheduler (Phase 11) here.
-        yield
+
+        async with AsyncExitStack() as stack:
+            engine = make_engine(records_url(settings.storage_dir))
+            stack.push_async_callback(engine.dispose)
+            await create_tables(engine)
+            app.state.repo = Repo(make_sessionmaker(engine))
+
+            checkpointer = await stack.enter_async_context(
+                AsyncSqliteSaver.from_conn_string(str(settings.storage_dir / CHECKPOINTS_DB))
+            )
+            app.state.deps = make_deps(app.state.catalog, app.state.repo, settings)
+            app.state.graph = build_graph(app.state.deps, checkpointer)
+            yield
 
     app = FastAPI(title="KaamPilot", version=__version__, lifespan=lifespan)
     app.state.settings = settings

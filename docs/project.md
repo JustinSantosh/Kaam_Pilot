@@ -339,7 +339,7 @@ kaampilot/
 | [01](phases/phase-01.md) | Foundations & project docs | Done |
 | [02](phases/phase-02.md) | Catalog & deterministic pricing | Done |
 | [03](phases/phase-03.md) | Schemas & LLM extraction | Done (model choice pending) |
-| [04](phases/phase-04.md) | Graph core & persistence | Not started |
+| [04](phases/phase-04.md) | Graph core & persistence | Done |
 | [05](phases/phase-05.md) | Human-in-the-loop | Not started |
 | [06](phases/phase-06.md) | Quotation PDF | Not started |
 | [07](phases/phase-07.md) | API layer | Not started |
