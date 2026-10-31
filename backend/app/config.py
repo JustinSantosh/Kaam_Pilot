@@ -23,7 +23,6 @@ class Settings(BaseSettings):
     business_phone: str = ""
     quote_validity_days: int = 15
     advance_percent: int = 50
-    public_base_url: str = "http://localhost:8000"  # used in links sent to customers
 
 
 @lru_cache

@@ -27,7 +27,7 @@ README.md                             # quickstart, screenshots/GIF, eval number
 - [x] `docker compose up` → both apps running (written; not built locally since Docker is unavailable).
 - [x] Health checks; `uvicorn --workers 1` documented ([D-013](../decisions.md#d-013)).
 - [x] Error states in UI (backend down, LLM timeout) show friendly messages.
-- [x] CI green.
+- [x] CI written; every step passes locally. The first GitHub Actions run happens when the PR is opened.
 - [x] Demo script (5 min): Hinglish voice note → clarify → complete → owner edits + discount → approve
       → customer gets PDF → fast-forwarded follow-up → injection attempt fails.
 - [x] Pitch notes: "a workflow, not an agent" framing, the 3 strongest decisions (D-002, D-007, D-009),
