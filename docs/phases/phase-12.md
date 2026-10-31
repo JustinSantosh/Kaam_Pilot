@@ -52,8 +52,8 @@ tokens and cost per quote. LLM-as-judge only for wording of clarify/reply drafts
 - [x] Runner calls the real graph nodes (not a copy of the logic), with replay mode for CI.
 - [x] Markdown report per run; summary table in README.
 - [x] LangSmith: env-based tracing, run metadata (`conversation_id`, `quote_id`, prompt version).
-- [x] Compare 2 models; record the winner in a new decision entry if it changes D-014's choice.
-- [x] Error analysis: top 5 failure patterns → prompt or matcher fixes → re-run.
+- [ ] Compare 2 models; record the winner in a new decision entry if it changes D-014's choice. **(Pending: needs the API key.)**
+- [ ] Error analysis: top 5 failure patterns → prompt or matcher fixes → re-run. **(Pending: needs a live run.)**
 
 ## Exit criteria
 - `run_evals --mode replay` runs in CI in under a minute and fails if total-match % drops below a set threshold.
