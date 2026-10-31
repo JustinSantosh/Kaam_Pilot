@@ -59,6 +59,7 @@ way it does, what it costs, and why the obvious alternatives were rejected.
 | [D-017](#d-017) | Eval metrics: per-field F1 + total correctness | Accepted | 12 |
 | [D-018](#d-018) | Discount split by largest remainder; tax rounded per line | Accepted | 02 |
 | [D-019](#d-019) | Billable quantity from dimensions is computed in code | Accepted | 03 |
+| [D-020](#d-020) | Default LLM: Gemini 3.5 Flash-Lite | Proposed | 03 |
 
 ---
 
@@ -398,3 +399,24 @@ way it does, what it costs, and why the obvious alternatives were rejected.
 - **Why not:**
   - *LLM computes area*: violates D-002; multiplication errors on the most expensive lines.
   - *Ask the customer for sqft directly*: customers don't think in sqft; it adds a round-trip.
+
+<a id="d-020"></a>
+## D-020: Default LLM: Gemini 3.5 Flash-Lite
+- **Date:** 2026-11-01 · **Status:** Proposed (confirm after the live golden run) · **Phase:** [03](phases/phase-03.md)
+- **Context:** D-014 left the model choice to Phase 03. The owner has a Google Gemini API key. Intent
+  classification and extraction are short structured-output tasks run on every customer message,
+  so cost and latency matter more than deep reasoning.
+- **Decision:** `KP_LLM_MODEL=google_genai:gemini-3.5-flash-lite`, the newest and cheapest Flash-Lite
+  model at the time of writing. `gemini-3.6-flash` is the step-up to compare against in Phase 12 if
+  extraction quality falls short. Installed with `pip install -e ".[google]"`.
+- **Why it matters:** This model reads every inquiry; its extraction accuracy sets the ceiling for
+  how often the owner can approve a quote without edits.
+- **Effects:**
+  - The key lives in `backend/.env` (gitignored) as `GOOGLE_API_KEY`. `get_settings()` now loads
+    `.env` into the process environment, because provider SDKs read keys from `os.environ` and
+    pydantic-settings doesn't export them.
+  - Switching models is a one-line `.env` change (D-014).
+  - `gemini-3.1-flash-lite` was avoided because it's scheduled for deprecation (May 2027).
+- **Why not:**
+  - *gemini-3.6-flash / 3.8-flash as default*: more capable but slower and pricier for a form-filling task; keep as fallback.
+  - *gemini-2.5-flash-lite*: older generation; no reason to start a new project on it.

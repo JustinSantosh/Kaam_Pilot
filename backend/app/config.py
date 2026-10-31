@@ -1,7 +1,10 @@
 from functools import lru_cache
 from pathlib import Path
 
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+ENV_FILE = ".env"
 
 
 class Settings(BaseSettings):
@@ -16,4 +19,7 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
+    # Provider SDKs read their keys (GOOGLE_API_KEY, OPENAI_API_KEY…) from os.environ, which
+    # pydantic-settings doesn't populate. Real environment variables still win over .env.
+    load_dotenv(ENV_FILE, override=False)
     return Settings()
