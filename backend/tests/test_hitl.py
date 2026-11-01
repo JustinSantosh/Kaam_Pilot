@@ -17,6 +17,7 @@ from app.db.repo import Repo
 from app.db.session import CHECKPOINTS_DB
 from app.schemas.decision import Approve, DecisionAdapter, Edit, Reject
 from app.services.catalog import load_catalog
+from app.services.money import paise_to_display
 from tests.fakes import FakeBrain
 
 HOODIES = "50 hoodies chahiye black, back pe DTF print, sizes M 20 L 20 XL 10"
@@ -69,9 +70,11 @@ async def test_approve_after_restart_runs_dispatch_once(
 
     quote = await repo.get_quote(result.quote_id)
     assert done.status == "completed"
-    assert quote.status == "approved"
-    assert done.reply == REPLY_APPROVED.format(number=quote.number)
-    assert (await kinds(repo, result.quote_id)).count("status:approved") == 1
+    assert quote.status == "sent"
+    assert done.reply == REPLY_APPROVED.format(
+        number=quote.number, total=paise_to_display(quote.total_paise)
+    )
+    assert (await kinds(repo, result.quote_id)).count("status:sent") == 1
 
 
 async def test_edit_reprices_into_new_revision(runtime: Runtime, repo: Repo) -> None:
@@ -91,7 +94,7 @@ async def test_edit_reprices_into_new_revision(runtime: Runtime, repo: Repo) -> 
     assert (await repo.get_items(result.quote_id))[0].specs["print_type"] == "dtf"  # kept
 
     await runtime.decide(result.quote_id, Approve(action="approve"), revision=2)
-    assert (await repo.get_quote(result.quote_id)).status == "approved"
+    assert (await repo.get_quote(result.quote_id)).status == "sent"
 
 
 async def test_discount_is_taxed_after_discount(runtime: Runtime, repo: Repo) -> None:
@@ -142,6 +145,8 @@ async def test_no_duplicate_events_from_resume_replay(runtime: Runtime, repo: Re
         "priced",
         "status:awaiting_approval",
         "status:approved",
+        "status:sent",
+        "followup_scheduled",
     ]
 
 

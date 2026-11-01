@@ -10,6 +10,7 @@ from app.llm import functions as llm
 from app.llm.demo import DemoBrain
 from app.schemas.extraction import Extraction, IntentResult, RiskResult
 from app.schemas.pricing import Catalog
+from app.services.followups import FollowupService
 
 ClassifyIntent = Callable[[str], Awaitable[IntentResult]]
 Extract = Callable[[str], Awaitable[Extraction]]
@@ -28,6 +29,7 @@ class Deps:
     extract: Extract
     classify_risk: ClassifyRisk | None = None  # None → rules-only guardrail (D-015)
     transcribe: Transcribe | None = None  # None → voice notes are refused
+    followups: FollowupService | None = None  # set at startup (Phase 11)
     pdf_dir: Path = field(default=Path("storage/quotes"))
 
 

@@ -363,7 +363,7 @@ kaampilot/
 | [08](phases/phase-08.md) | Customer Hub (frontend) | Done |
 | [09](phases/phase-09.md) | Business Ops console | Done |
 | [10](phases/phase-10.md) | Guardrails & voice | Done (live voice check pending API key) |
-| [11](phases/phase-11.md) | Dispatch & follow-ups | Not started |
+| [11](phases/phase-11.md) | Dispatch & follow-ups | Done |
 | [12](phases/phase-12.md) | Evals & observability | Not started |
 | [13](phases/phase-13.md) | Hardening & demo | Not started |
 

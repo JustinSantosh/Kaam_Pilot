@@ -22,6 +22,8 @@ from app.db.session import (
 )
 from app.schemas.pricing import Catalog
 from app.services.catalog import load_catalog
+from app.services.followups import FollowupService, make_scheduler
+from app.services.outbound import InAppOutbound
 
 DepsFactory = Callable[[Catalog, Repo, Settings], Deps]
 
@@ -46,9 +48,20 @@ def create_app(
             checkpointer = await stack.enter_async_context(
                 AsyncSqliteSaver.from_conn_string(str(settings.storage_dir / CHECKPOINTS_DB))
             )
+            # Follow-ups (D-013): persistent job store, one scheduler per process.
+            scheduler = make_scheduler(settings)
+            followups = FollowupService(
+                app.state.repo, InAppOutbound(app.state.repo), scheduler, settings
+            )
+            followups.activate()
+            scheduler.start()
+            stack.callback(scheduler.shutdown, wait=False)
+            app.state.followups = followups
+
             app.state.deps = make_deps(app.state.catalog, app.state.repo, settings)
+            app.state.deps.followups = followups
             app.state.graph = build_graph(app.state.deps, checkpointer)
-            app.state.runtime = Runtime(app.state.graph, app.state.repo)
+            app.state.runtime = Runtime(app.state.graph, app.state.repo, followups)
             yield
 
     app = FastAPI(title="KaamPilot", version=__version__, lifespan=lifespan)

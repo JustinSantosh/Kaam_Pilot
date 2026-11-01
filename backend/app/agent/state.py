@@ -37,4 +37,5 @@ class AgentState(TypedDict, total=False):
     edit_errors: list[str]
 
     reply: str  # message for the customer from this turn
+    reply_kind: str  # "text", or "quote" when the reply carries the quotation PDF
     outcome: Outcome
