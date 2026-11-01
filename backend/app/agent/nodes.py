@@ -144,6 +144,15 @@ class Nodes:
     async def price(self, state: AgentState) -> dict[str, Any]:
         repo = self.deps.repo
         customer_state = self._customer_state(state)
+        discount = Discount.model_validate(state["discount"]) if state.get("discount") else None
+        priced = price_quote(
+            [PricingInput.model_validate(p) for p in state["pricing_inputs"]],
+            catalog=self.deps.catalog,
+            business_state=self.deps.settings.business_state,
+            customer_state=customer_state,
+            discount=discount,
+        )
+        # Create the quote only once pricing succeeded, so a PricingError leaves no orphan draft.
         quote_id = state.get("quote_id")
         if not quote_id:
             quote = await repo.create_quote(
@@ -154,14 +163,6 @@ class Nodes:
                 customer_state=customer_state,
             )
             quote_id = quote.id
-        discount = Discount.model_validate(state["discount"]) if state.get("discount") else None
-        priced = price_quote(
-            [PricingInput.model_validate(p) for p in state["pricing_inputs"]],
-            catalog=self.deps.catalog,
-            business_state=self.deps.settings.business_state,
-            customer_state=customer_state,
-            discount=discount,
-        )
         revision = (state.get("revision") or 0) + 1
         flags = [*priced.flags, *(state.get("guardrail") or {}).get("flags", [])]
         await repo.save_revision(
