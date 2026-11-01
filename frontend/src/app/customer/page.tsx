@@ -6,7 +6,15 @@ import { ScenarioPresets } from "@/components/ScenarioPresets";
 import { DEMO_CUSTOMERS, SessionSwitcher } from "@/components/SessionSwitcher";
 import { Card, CardTitle, ErrorNote, StatusBadge } from "@/components/ui";
 import { usePolling } from "@/hooks/usePolling";
-import { api, ApiError, type Message, type Scenario, type TurnStatus } from "@/lib/api";
+import {
+  api,
+  ApiError,
+  type ChatSendResponse,
+  type Customer,
+  type Message,
+  type Scenario,
+  type TurnStatus,
+} from "@/lib/api";
 import { resetConversation, serverSnapshot, snapshotFor, subscribe } from "@/lib/sessions";
 
 const sessionSnapshot = snapshotFor(DEMO_CUSTOMERS.map((c) => c.id));
@@ -53,13 +61,18 @@ export default function CustomerHub() {
 
   usePolling(poll, 2500, Boolean(conversationId));
 
-  const send = async (text: string) => {
+  const send = (text: string) =>
+    submit((who) => api.send(conversationId!, who, text));
+  const sendVoice = (audio: Blob) =>
+    submit((who) => api.sendAudio(conversationId!, who, audio));
+
+  const submit = async (call: (who: Customer) => Promise<ChatSendResponse>) => {
     if (!conversationId) return;
     setSending(true);
     setError(null);
     try {
       const { name, phone, state } = customer;
-      const result = await api.send(conversationId, { name, phone, state }, text);
+      const result = await call({ name, phone, state });
       setStatusByConv((prev) => ({ ...prev, [conversationId]: result.status }));
       await poll();
     } catch (e) {
@@ -102,7 +115,7 @@ export default function CustomerHub() {
           <CardTitle aside={status && <StatusBadge status={status} />}>
             Chat with the business · {customer.name}
           </CardTitle>
-          <ChatStream messages={messages} sending={sending} onSend={send} />
+          <ChatStream messages={messages} sending={sending} onSend={send} onVoice={sendVoice} />
         </Card>
         <p className="text-xs text-slate-500">
           Conversation <code>{conversationId ?? "…"}</code>. Replies appear here as soon as the

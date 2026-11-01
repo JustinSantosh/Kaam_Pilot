@@ -147,6 +147,7 @@ class Repo:
         priced: PricedQuote,
         *,
         discount: dict | None = None,
+        flags: list[str] | None = None,
     ) -> Quote:
         """Write priced lines for `revision`. Re-running with the same revision replaces it."""
         async with self.sessions() as s, s.begin():
@@ -167,7 +168,7 @@ class Repo:
             t = priced.totals
             quote.revision = revision
             quote.supply_type = priced.supply_type
-            quote.flags = list(priced.flags)
+            quote.flags = list(priced.flags if flags is None else flags)
             quote.discount = discount
             for field in (
                 "subtotal_paise",

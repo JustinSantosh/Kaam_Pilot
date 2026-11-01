@@ -63,6 +63,7 @@ way it does, what it costs, and why the obvious alternatives were rejected.
 | [D-021](#d-021) | PDF engine: Jinja2 + xhtml2pdf | Accepted | 06 |
 | [D-022](#d-022) | Offline demo brain (`KP_LLM_MODEL=demo`) | Accepted | 08 |
 | [D-023](#d-023) | Frontend: Next.js 16 + Tailwind, hand-written UI primitives | Accepted | 08 |
+| [D-024](#d-024) | Voice: transcribe with the configured model, before the graph | Accepted | 10 |
 
 ---
 
@@ -481,3 +482,22 @@ way it does, what it costs, and why the obvious alternatives were rejected.
 - **Why not:**
   - *Stay on 15.5.x*: known high-severity advisories.
   - *Full shadcn/ui now*: more dependencies than two screens need.
+
+<a id="d-024"></a>
+## D-024: Voice: transcribe with the configured model, before the graph
+- **Date:** 2026-11-01 · **Status:** Accepted · **Phase:** [10](phases/phase-10.md)
+- **Context:** The original spec named OpenAI Whisper. The chosen provider is Gemini (D-020), which
+  accepts audio directly, and adding a second vendor just for speech means a second key and bill.
+- **Decision:** `POST /api/chat/send-audio` (multipart, ≤5 MB, webm/ogg/mp3/m4a/wav) stores the file
+  under `storage/audio/`, calls `deps.transcribe(bytes, mime)` (configured model with an audio content block
+  and the `transcribe_v1` prompt), then hands the transcript to `Runtime.handle_message(kind="voice")`.
+  From there it's identical to typed text: guardrail, intent, extraction, validation. In demo mode,
+  `DemoBrain.transcribe` returns a fixed, labelled transcript.
+- **Why it matters:** One pipeline for text and voice means one set of guardrails and tests. Keeping
+  audio bytes out of graph state keeps checkpoints small.
+- **Effects:**
+  - Voice messages show as "voice note" in the chat; the transcript is what the owner sees under "Customer said".
+  - The Gemini audio call has not been verified live yet (no API key at implementation time); see the owner to-do list.
+- **Why not:**
+  - *Whisper*: a second provider, key and bill for one feature.
+  - *Transcribe inside the graph*: puts audio bytes in checkpoints and complicates resume.

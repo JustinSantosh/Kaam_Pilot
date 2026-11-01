@@ -3,15 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import { fileUrl, type Message } from "@/lib/api";
 import { Button } from "./ui";
+import { VoiceRecorder } from "./VoiceRecorder";
 
 export function ChatStream({
   messages,
   sending,
   onSend,
+  onVoice,
 }: {
   messages: Message[];
   sending: boolean;
   onSend: (text: string) => void;
+  onVoice?: (audio: Blob) => void;
 }) {
   const [draft, setDraft] = useState("");
   const bottom = useRef<HTMLDivElement>(null);
@@ -67,6 +70,7 @@ export function ChatStream({
           placeholder="Type a message… e.g. 50 black hoodies, DTF on back, M 20 L 20 XL 10"
           className="flex-1 resize-none rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
         />
+        {onVoice && <VoiceRecorder disabled={sending} onRecorded={onVoice} />}
         <Button type="submit" disabled={sending || !draft.trim()} className="self-end">
           Send
         </Button>
