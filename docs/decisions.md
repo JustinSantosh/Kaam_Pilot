@@ -51,7 +51,7 @@ way it does, what it costs, and why the obvious alternatives were rejected.
 | [D-009](#d-009) | Owner edits loop back to pricing; no total override | Accepted | 05, 09 |
 | [D-010](#d-010) | No side effects before `interrupt()` | Accepted | 05 |
 | [D-011](#d-011) | SQLite + async checkpointer + `ainvoke` | Accepted | 04, 07 |
-| [D-012](#d-012) | PDF engine: WeasyPrint + Jinja2 | Proposed | 06 |
+| [D-012](#d-012) | PDF engine: WeasyPrint + Jinja2 | Superseded by D-021 | 06 |
 | [D-013](#d-013) | APScheduler with a persistent job store | Accepted | 11 |
 | [D-014](#d-014) | Provider-agnostic LLM layer | Accepted | 03 |
 | [D-015](#d-015) | Injection defense is architectural first | Accepted | 10 |
@@ -60,6 +60,7 @@ way it does, what it costs, and why the obvious alternatives were rejected.
 | [D-018](#d-018) | Discount split by largest remainder; tax rounded per line | Accepted | 02 |
 | [D-019](#d-019) | Billable quantity from dimensions is computed in code | Accepted | 03 |
 | [D-020](#d-020) | Default LLM: Gemini 3.5 Flash-Lite | Proposed | 03 |
+| [D-021](#d-021) | PDF engine: Jinja2 + xhtml2pdf | Accepted | 06 |
 
 ---
 
@@ -255,7 +256,7 @@ way it does, what it costs, and why the obvious alternatives were rejected.
 
 <a id="d-012"></a>
 ## D-012: PDF engine: WeasyPrint + Jinja2
-- **Date:** 2026-10-31 · **Status:** Proposed (confirm in Phase 06) · **Phase:** [06](phases/phase-06.md)
+- **Date:** 2026-10-31 · **Status:** Superseded by [D-021](#d-021) · **Phase:** [06](phases/phase-06.md)
 - **Context:** Quotes should look professional and be easy to restyle. WeasyPrint renders HTML/CSS,
   but on Windows it needs GTK/Pango native libraries, which are awkward to install.
 - **Decision (proposed):** Jinja2 HTML template + WeasyPrint, run in Docker or WSL on Windows.
@@ -420,3 +421,26 @@ way it does, what it costs, and why the obvious alternatives were rejected.
 - **Why not:**
   - *gemini-3.6-flash / 3.8-flash as default*: more capable but slower and pricier for a form-filling task; keep as fallback.
   - *gemini-2.5-flash-lite*: older generation; no reason to start a new project on it.
+
+<a id="d-021"></a>
+## D-021: PDF engine: Jinja2 + xhtml2pdf
+- **Date:** 2026-11-01 · **Status:** Accepted (supersedes [D-012](#d-012)) · **Phase:** [06](phases/phase-06.md)
+- **Context:** The Phase 06 spike confirmed WeasyPrint can't load on this Windows machine: it needs
+  GTK/Pango native libraries (`cffi` fails to find them). Docker isn't installed here either, so
+  "run it in Docker" isn't an option for day-to-day development.
+- **Decision:** Keep the Jinja2 HTML template, rendered by **xhtml2pdf** (pure Python, built on ReportLab).
+  `services/pdf.py::render_pdf()` is the only entry point. Draft PDFs (`r{rev}-draft.pdf`, with a
+  "DRAFT" mark) are rendered for review; the final `r{rev}.pdf` is rendered on approval.
+  Amounts print as `Rs. 12,39,000.50` because xhtml2pdf's built-in fonts have no ₹ glyph.
+- **Why it matters:** The PDF is what the customer sees. It must build the same on Windows, Linux CI
+  and Docker without system packages.
+- **Effects:**
+  - The template is still plain HTML/CSS, easy to rebrand. xhtml2pdf supports a CSS subset (no
+    flexbox/grid; tables are used for layout).
+  - Business details come from `KP_BUSINESS_*` settings.
+  - To print ₹, bundle a TTF with the glyph (e.g. Noto Sans) and register it with `@font-face`;
+    noted as an optional polish item.
+- **Why not:**
+  - *WeasyPrint*: best CSS support, but native dependencies; fails on Windows without GTK.
+  - *ReportLab directly*: layout in Python code, tedious to restyle.
+  - *Headless Chrome (Playwright)*: excellent output, ~150 MB browser dependency for one document.

@@ -9,6 +9,7 @@ from app import __version__
 from app.agent.deps import Deps, default_deps
 from app.agent.graph import build_graph
 from app.agent.runtime import Runtime
+from app.api import routes_files
 from app.config import Settings, get_settings
 from app.db.repo import Repo
 from app.db.session import (
@@ -58,6 +59,8 @@ def create_app(
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    app.include_router(routes_files.router)
 
     @app.get("/health")
     async def health() -> dict[str, str]:

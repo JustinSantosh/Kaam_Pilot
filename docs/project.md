@@ -341,7 +341,7 @@ kaampilot/
 | [03](phases/phase-03.md) | Schemas & LLM extraction | Done (model choice pending) |
 | [04](phases/phase-04.md) | Graph core & persistence | Done |
 | [05](phases/phase-05.md) | Human-in-the-loop | Done |
-| [06](phases/phase-06.md) | Quotation PDF | Not started |
+| [06](phases/phase-06.md) | Quotation PDF | Done |
 | [07](phases/phase-07.md) | API layer | Not started |
 | [08](phases/phase-08.md) | Customer Hub (frontend) | Not started |
 | [09](phases/phase-09.md) | Business Ops console | Not started |
