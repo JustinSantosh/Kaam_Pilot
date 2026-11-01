@@ -8,6 +8,7 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from app import __version__
 from app.agent.deps import Deps, default_deps
 from app.agent.graph import build_graph
+from app.agent.runtime import Runtime
 from app.config import Settings, get_settings
 from app.db.repo import Repo
 from app.db.session import (
@@ -45,6 +46,7 @@ def create_app(
             )
             app.state.deps = make_deps(app.state.catalog, app.state.repo, settings)
             app.state.graph = build_graph(app.state.deps, checkpointer)
+            app.state.runtime = Runtime(app.state.graph, app.state.repo)
             yield
 
     app = FastAPI(title="KaamPilot", version=__version__, lifespan=lifespan)

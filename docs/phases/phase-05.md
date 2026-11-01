@@ -1,6 +1,6 @@
 # Phase 05: Human-in-the-loop
 
-- **Status:** Not started
+- **Status:** Done
 - **Depends on:** [04](phase-04.md)
 - **Decisions:** [D-008](../decisions.md#d-008), [D-009](../decisions.md#d-009), [D-010](../decisions.md#d-010)
 
@@ -37,12 +37,12 @@ async def hitl_pause(state):
 - `runtime.pending(conv_id)`: `aget_state` → returns the interrupt payload if `state.tasks` has one ([D-008](../decisions.md#d-008)).
 
 ## Tasks
-- [ ] Decision discriminated union: `{"action": "approve"}`, `{"action": "reject", "reason"}`,
+- [x] Decision discriminated union: `{"action": "approve"}`, `{"action": "reject", "reason"}`,
       `{"action": "edit", "edits": {items?, discount_paise?, discount_pct_bp?}}`.
-- [ ] `hitl_pause`, `apply_edits`, `mark_rejected`, `dispatch` stub.
-- [ ] `runtime.py` wraps `ainvoke` / `Command(resume=…)` and returns a normalized result
+- [x] `hitl_pause`, `apply_edits`, `mark_rejected`, `dispatch` stub.
+- [x] `runtime.py` wraps `ainvoke` / `Command(resume=…)` and returns a normalized result
       (`awaiting_approval | needs_clarification | completed | rejected | busy`).
-- [ ] Customer message while pending → stored as a `quote_event` note; returns `busy`.
+- [x] Customer message while pending → stored as a `quote_event` note; returns `busy`.
 
 ## Exit criteria
 Tests (LLM mocked, real SQLite in `tmp_path`):
@@ -61,3 +61,15 @@ Tests (LLM mocked, real SQLite in `tmp_path`):
 
 ## Notes / changelog
 - 2026-10-31: phase file created.
+- 2026-11-01: implemented on branch `phase-05-hitl`.
+  - Graph: `price → render_pdf → submit_for_review → hitl_pause`, then `approve → dispatch`,
+    `edit → apply_edits → price` (or back to `hitl_pause` with `edit_errors`), and
+    `reject → mark_rejected`. The quote status changes to `awaiting_approval` in
+    `submit_for_review`, before the pause (D-010).
+  - `schemas/decision.py`: `Approve | Reject | Edit`, with discriminator `action`. Edits are a full
+    replacement line list (specs kept when omitted), a discount, or `remove_discount`; there's no total field (D-009).
+  - `agent/runtime.py`: `handle_message` / `decide` / `pending`; per-conversation asyncio lock;
+    `busy` + `customer_note` while pending (D-008); `StaleRevisionError`, `QuoteNotPendingError`.
+  - The customer hears "being prepared" once (revision 1); owner edits don't message them.
+  - Tests: 335 offline (10 new), including approve after a restart, exact event sequence (no replay
+    duplicates), invalid edit, discount, and busy handling.
