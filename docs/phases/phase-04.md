@@ -1,6 +1,6 @@
 # Phase 04: Graph core & persistence
 
-- **Status:** Not started
+- **Status:** Done
 - **Depends on:** [02](phase-02.md), [03](phase-03.md)
 - **Decisions:** [D-001](../decisions.md#d-001), [D-004](../decisions.md#d-004), [D-007](../decisions.md#d-007), [D-008](../decisions.md#d-008), [D-011](../decisions.md#d-011)
 
@@ -27,16 +27,16 @@ backend/tests/test_repo.py
 ```
 
 ## Tasks
-- [ ] `AgentState` per [project.md §5.2](../project.md#52-graph-state-agentstate).
-- [ ] Nodes are thin: each calls a service function and returns a partial state update.
-- [ ] Graph routes: `intent` → (`cancel_handler` | `reply_draft` | `extract`) → `validate` →
+- [x] `AgentState` per [project.md §5.2](../project.md#52-graph-state-agentstate).
+- [x] Nodes are thin: each calls a service function and returns a partial state update.
+- [x] Graph routes: `intent` → (`cancel_handler` | `reply_draft` | `extract`) → `validate` →
       (`clarify_draft` | `price`) → `render_pdf` → END (HITL is added in Phase 05).
-- [ ] `price` creates/updates the quote row (`status=draft`, revision 1) via repo: idempotent upsert
+- [x] `price` creates/updates the quote row (`status=draft`, revision 1) via repo: idempotent upsert
       on `(quote_id, revision)`.
-- [ ] Lifespan: open `AsyncSqliteSaver` (`storage/checkpoints.db`) and the async engine
+- [x] Lifespan: open `AsyncSqliteSaver` (`storage/checkpoints.db`) and the async engine
       (`storage/kaampilot.db`); create tables (Alembic is optional; `create_all` is fine for MVP).
-- [ ] Add `graph` to `app.state` for routes in Phase 07.
-- [ ] Tests mock `classify_intent` / `extract` (monkeypatch at `llm/functions.py`).
+- [x] Add `graph` to `app.state` for routes in Phase 07.
+- [x] Tests mock `classify_intent` / `extract` (monkeypatch at `llm/functions.py`).
 
 ## Exit criteria
 - Graph tests cover: cancel path, other path, incomplete → clarify (message lists the exact missing
@@ -50,3 +50,16 @@ backend/tests/test_repo.py
 
 ## Notes / changelog
 - 2026-10-31: phase file created.
+- 2026-11-01: implemented on branch `phase-04-graph`.
+  - Records DB (`app/db/`): `conversations`, `messages` (for chat polling), `quotes`, `quote_items`,
+    `quote_events`; SQLite with WAL and foreign keys; `Repo` with idempotent `save_revision`.
+  - Graph (`app/agent/`): `ingest → guardrail(stub) → intent → extract → validate →
+    clarify_draft | price → render_pdf(stub)`, plus `cancel_handler` and `reply_draft`. The nodes
+    live in one `nodes.py` class, not a package.
+  - Multi-turn clarification: `pending_inquiry` collects the customer's messages until the request
+    is complete; extraction runs on all of them joined.
+  - Nodes never write chat messages. The runtime stores `reply` after each run (Phase 05), so
+    replays can't double-send (D-010).
+  - Place of supply: `services/states.py` maps state names, codes and major cities to codes.
+  - LLM functions injected through `Deps`; tests use `tests/fakes.py::FakeBrain`.
+  - Tests: 325 offline (14 new), including a restart test with a new checkpointer instance.
