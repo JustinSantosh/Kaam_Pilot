@@ -58,6 +58,8 @@ way it does, what it costs, and why the obvious alternatives were rejected.
 | [D-016](#d-016) | Frontend polls; SSE later | Accepted | 08, 09 |
 | [D-017](#d-017) | Eval metrics: per-field F1 + total correctness | Accepted | 12 |
 | [D-018](#d-018) | Discount split by largest remainder; tax rounded per line | Accepted | 02 |
+| [D-019](#d-019) | Billable quantity from dimensions is computed in code | Accepted | 03 |
+| [D-020](#d-020) | Default LLM: Gemini 3.5 Flash-Lite | Proposed | 03 |
 
 ---
 
@@ -375,3 +377,46 @@ way it does, what it costs, and why the obvious alternatives were rejected.
   - *Leftover to the largest line*: can make a small line's taxable value negative (see Context).
   - *Round each share independently*: shares may not add up to the discount.
   - *Round tax once per quote*: the quote's tax can no longer be traced to individual lines on the document.
+
+<a id="d-019"></a>
+## D-019: Billable quantity from dimensions is computed in code
+- **Date:** 2026-10-31 · **Status:** Accepted · **Phase:** [03](phases/phase-03.md)
+- **Context:** Gates, wardrobes and banners are priced per sqft and railings per running foot, but
+  customers give dimensions ("12 ft wide, 6 ft high", "2 almirah 8x7"), not areas. Asking the LLM to
+  multiply would bring back the arithmetic errors D-002 exists to prevent.
+- **Decision:** The extraction prompt tells the LLM to record the **number of pieces** (or null) and
+  put dimensions in `width_ft` / `height_ft` / `length_rft` specs. `validator._derive_quantity()` computes
+  `pieces × width × height` (sqft) or `pieces × length` (rft), rounds **up** to a whole unit, and adds
+  a note such as "112 sqft = 2 × 8 ft × 7 ft (rounded up)" for the owner. Without dimensions, the stated
+  number is used as is.
+- **Why it matters:** Area is the biggest multiplier on these quotes. A wrong area means a wrong total,
+  and the owner might not notice.
+- **Effects:**
+  - The owner sees how each derived quantity was calculated in the inspector (Phase 09).
+  - "2 wardrobes" without dimensions is treated as 2 sqft and fails MOQ, which prompts a clarification
+    instead of a guess.
+  - Rounding up favours the business by under one unit; the owner can edit it (D-009).
+- **Why not:**
+  - *LLM computes area*: violates D-002; multiplication errors on the most expensive lines.
+  - *Ask the customer for sqft directly*: customers don't think in sqft; it adds a round-trip.
+
+<a id="d-020"></a>
+## D-020: Default LLM: Gemini 3.5 Flash-Lite
+- **Date:** 2026-11-01 · **Status:** Proposed (confirm after the live golden run) · **Phase:** [03](phases/phase-03.md)
+- **Context:** D-014 left the model choice to Phase 03. The owner has a Google Gemini API key. Intent
+  classification and extraction are short structured-output tasks run on every customer message,
+  so cost and latency matter more than deep reasoning.
+- **Decision:** `KP_LLM_MODEL=google_genai:gemini-3.5-flash-lite`, the newest and cheapest Flash-Lite
+  model at the time of writing. `gemini-3.6-flash` is the step-up to compare against in Phase 12 if
+  extraction quality falls short. Installed with `pip install -e ".[google]"`.
+- **Why it matters:** This model reads every inquiry; its extraction accuracy sets the ceiling for
+  how often the owner can approve a quote without edits.
+- **Effects:**
+  - The key lives in `backend/.env` (gitignored) as `GOOGLE_API_KEY`. `get_settings()` now loads
+    `.env` into the process environment, because provider SDKs read keys from `os.environ` and
+    pydantic-settings doesn't export them.
+  - Switching models is a one-line `.env` change (D-014).
+  - `gemini-3.1-flash-lite` was avoided because it's scheduled for deprecation (May 2027).
+- **Why not:**
+  - *gemini-3.6-flash / 3.8-flash as default*: more capable but slower and pricier for a form-filling task; keep as fallback.
+  - *gemini-2.5-flash-lite*: older generation; no reason to start a new project on it.
