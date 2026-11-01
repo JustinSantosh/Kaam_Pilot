@@ -78,40 +78,50 @@ is a second layer, not the main defense ([D-015](decisions.md#d-015)).
 ### 3.2 Graph topology
 
 ```
+(voice note → POST /api/chat/send-audio → transcribed by the configured model, D-024)
 START
   │
   ▼
-[transcribe]  (voice only, Whisper)
+[ingest]  (upsert conversation; keep earlier messages while a request is being clarified)
   │
   ▼
-[guardrail] ──(flagged)──────────────────────► [reject_draft] ──► END
-  │ ok
+[guardrail]  rules, then optional LLM risk check (fails open)
+  │ ├──(injection / abuse)───────────────────► [reject_draft] ──► END
+  │ ok (money-override phrases only add a flag to the quote)
   ▼
 [intent]  (LLM: new_quote | cancel | other)
-  │ ├──(cancel)──────────────────────────────► [cancel_handler] ──► END
+  │ ├──(cancel)──────────────────────────────► [cancel_handler] ──► END   (also cancels follow-up)
   │ └──(other / small talk)──────────────────► [reply_draft] ──► END
   │ new_quote
   ▼
-[extract]  (LLM → list[ExtractedItem])
+[extract]  (LLM → Extraction; no money fields)
   │
   ▼
-[validate]  (code: SKU match + required specs + MOQ)
+[validate]  (code: SKU match + required specs + options + MOQ + sqft/rft from dimensions)
   │ ├──(missing / ambiguous)─────────────────► [clarify_draft] ──► END
   │ complete
   ▼
-[price]  (code: catalog → list[PricedLineItem] + totals)   ◄──────────┐
-  │                                                                    │
-  ▼                                                                    │
-[render_pdf]                                                           │
-  │                                                                    │
-  ▼                                                                    │
-[hitl_pause]  interrupt(review_payload)   ← checkpointed               │
-  │ ├──(edit: changed items / discount)───────────────────────────────┘
+[price]  (code: catalog → PricedLineItem + totals, new revision)   ◄────────────┐
+  │                                                                            │
+  ▼                                                                            │
+[render_pdf]  (draft PDF r{rev}-draft.pdf)                                     │
+  │                                                                            │
+  ▼                                                                            │
+[submit_for_review]  (status → awaiting_approval; before the pause, D-010)     │
+  │                                                                            │
+  ▼                                                                            │
+[hitl_pause]  interrupt(review_payload)   ← checkpointed                       │
+  │ ├──(edit)──► [apply_edits] ──(valid)───────────────────────────────────────┘
+  │ │                 └──(invalid: edit_errors)──► back to [hitl_pause]
   │ ├──(reject)──────────────────────────────► [mark_rejected] ──► END
   │ approve
   ▼
-[dispatch]  → send message + PDF link, arm 48h follow-up ──► END
+[dispatch]  final PDF, status → sent, PDF message, arm 48h follow-up (APScheduler) ──► END
 ```
+
+Outside the graph, `Runtime` stores every customer/business message, refuses to start a run while
+a quote is pending (the message becomes a note, D-008), cancels the follow-up when the customer
+replies, and treats a bare "YES" after sending as acceptance.
 
 Key differences from the original draft (each recorded as a decision):
 - Clarification is decided by code **after** extraction, not by the intent LLM ([D-004](decisions.md#d-004)).
@@ -365,7 +375,7 @@ kaampilot/
 | [10](phases/phase-10.md) | Guardrails & voice | Done (live voice check pending API key) |
 | [11](phases/phase-11.md) | Dispatch & follow-ups | Done |
 | [12](phases/phase-12.md) | Evals & observability | Done (live LLM run pending API key) |
-| [13](phases/phase-13.md) | Hardening & demo | Not started |
+| [13](phases/phase-13.md) | Hardening & demo | Done (Docker build untested locally) |
 
 Status values: `Not started` · `In progress` · `Done` · `Blocked`.
 

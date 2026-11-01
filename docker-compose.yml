@@ -1,0 +1,32 @@
+# docker compose up --build   →  frontend http://localhost:3000, backend http://localhost:8000
+# Demo mode needs no API key. For the real LLM, set KP_LLM_MODEL and GOOGLE_API_KEY in backend/.env.
+services:
+  backend:
+    build: ./backend
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      KP_LLM_MODEL: ${KP_LLM_MODEL:-demo}
+      KP_STORAGE_DIR: /data
+      KP_CORS_ORIGINS: '["http://localhost:3000"]'
+    ports:
+      - "8000:8000"
+    volumes:
+      - kaampilot-data:/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  kaampilot-data:

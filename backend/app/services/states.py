@@ -46,9 +46,9 @@ ALIASES: dict[str, str] = {
     "uttaranchal": "UK",
     "new delhi": "DL",
     "nct of delhi": "DL",
-    # Major cities customers name instead of the state.
+    # Major cities customers name instead of the state. Names shared by cities in two states
+    # (Bilaspur: CG and HP) are left out so they stay unknown and get flagged.
     "raipur": "CG",
-    "bilaspur": "CG",
     "bhilai": "CG",
     "durg": "CG",
     "mumbai": "MH",

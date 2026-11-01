@@ -1,3 +1,5 @@
+import asyncio
+
 from app.db.repo import Repo
 from app.schemas.pricing import PricingInput
 from app.services.catalog import load_catalog
@@ -33,6 +35,19 @@ async def test_quote_numbers_are_sequential(repo: Repo) -> None:
     first, second = await make_quote(repo), await make_quote(repo)
     assert first.number.endswith("-0001")
     assert second.number.endswith("-0002")
+
+
+async def test_concurrent_quotes_get_distinct_numbers(repo: Repo) -> None:
+    await repo.ensure_conversation("c1", name="Ravi")
+    quotes = await asyncio.gather(
+        *(
+            repo.create_quote(
+                "c1", raw_query="x", extraction={}, validation={}, customer_state="CG"
+            )
+            for _ in range(20)  # without the lock, several collide on the unique number
+        )
+    )
+    assert len({q.number for q in quotes}) == 20
 
 
 async def test_save_revision_is_idempotent_and_keeps_history(repo: Repo) -> None:
@@ -82,4 +97,5 @@ def test_state_codes() -> None:
     assert state_code("  Raipur ") == "CG"
     assert state_code("Chattisgarh") == "CG"
     assert state_code("Atlantis") is None
+    assert state_code("Bilaspur") is None  # a city in both CG and HP: flag, don't guess
     assert state_code(None) is None

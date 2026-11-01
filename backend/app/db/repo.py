@@ -1,6 +1,7 @@
 """Repository for conversations, messages and quotes. Every write is idempotent where a graph
 node might repeat it (D-007, D-010)."""
 
+import asyncio
 import secrets
 from collections.abc import Iterable
 from datetime import datetime
@@ -27,6 +28,9 @@ def new_quote_id() -> str:
 class Repo:
     def __init__(self, sessions: async_sessionmaker) -> None:
         self.sessions = sessions
+        # Quote numbers are count-based; serialise allocation so two conversations pricing at
+        # once can't read the same count. One process only (D-013), so a local lock is enough.
+        self._number_lock = asyncio.Lock()
 
     # --- conversations & messages -----------------------------------------------------------------
 
@@ -124,7 +128,7 @@ class Repo:
         validation: dict,
         customer_state: str | None,
     ) -> Quote:
-        async with self.sessions() as s, s.begin():
+        async with self._number_lock, self.sessions() as s, s.begin():
             quote = Quote(
                 id=new_quote_id(),
                 number=await self._next_number(s),
