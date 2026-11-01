@@ -361,7 +361,7 @@ kaampilot/
 | [06](phases/phase-06.md) | Quotation PDF | Done |
 | [07](phases/phase-07.md) | API layer | Done |
 | [08](phases/phase-08.md) | Customer Hub (frontend) | Done |
-| [09](phases/phase-09.md) | Business Ops console | Not started |
+| [09](phases/phase-09.md) | Business Ops console | Done |
 | [10](phases/phase-10.md) | Guardrails & voice | Not started |
 | [11](phases/phase-11.md) | Dispatch & follow-ups | Not started |
 | [12](phases/phase-12.md) | Evals & observability | Not started |
