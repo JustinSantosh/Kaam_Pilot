@@ -46,7 +46,8 @@ backend/tests/test_extract_golden.py  # marked @pytest.mark.llm (opt-in, live; s
 
 ## Tasks
 - [ ] Choose a current small model with good structured output; record the choice in decisions.md as a new entry.
-      **Open:** no API key on this machine yet. Provider extras are ready: `pip install -e ".[openai]"`
+      **Partly done:** [D-020](../decisions.md#d-020) proposes Gemini 3.5 Flash-Lite; confirm after a live eval run.
+      Provider extras are ready: `pip install -e ".[openai]"`
       (or `google`, `anthropic`), then set `KP_LLM_MODEL` and the key in `backend/.env`.
 - [x] `structured(schema)` = `get_model().with_structured_output(schema)`, retried up to 3 attempts on
       parse/validation errors.

@@ -52,7 +52,12 @@ class TurnResult(BaseModel):
 
 
 def _config(conversation_id: str) -> dict[str, Any]:
-    return {"configurable": {"thread_id": conversation_id}}
+    # thread_id drives checkpoints; metadata/run_name label the LangSmith trace (Phase 12).
+    return {
+        "configurable": {"thread_id": conversation_id},
+        "run_name": "kaampilot-turn",
+        "metadata": {"conversation_id": conversation_id},
+    }
 
 
 class Runtime:

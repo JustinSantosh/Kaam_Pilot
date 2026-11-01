@@ -5,6 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.runnables import RunnableConfig
 
 from app.llm import provider
 from app.schemas.extraction import Extraction, IntentResult, RiskResult
@@ -15,6 +16,11 @@ INTENT_PROMPT = "intent_v1"
 EXTRACT_PROMPT = "extract_v1"
 GUARDRAIL_PROMPT = "guardrail_v1"
 TRANSCRIBE_PROMPT = "transcribe_v1"
+
+
+def _trace(prompt: str) -> RunnableConfig:
+    """LangSmith run name + prompt-version tag (tracing is on when LANGSMITH_TRACING=true)."""
+    return {"run_name": prompt.rsplit("_", 1)[0], "tags": [prompt]}
 
 
 @lru_cache
@@ -44,18 +50,18 @@ def spec_vocabulary(catalog: Catalog) -> str:
 
 async def classify_intent(text: str) -> IntentResult:
     messages = [SystemMessage(load_prompt(INTENT_PROMPT)), HumanMessage(wrap_inquiry(text))]
-    return await provider.structured(IntentResult).ainvoke(messages)
+    return await provider.structured(IntentResult).ainvoke(messages, config=_trace(INTENT_PROMPT))
 
 
 async def extract(text: str, *, catalog: Catalog) -> Extraction:
     system = load_prompt(EXTRACT_PROMPT).replace("{{VOCABULARY}}", spec_vocabulary(catalog))
     messages = [SystemMessage(system), HumanMessage(wrap_inquiry(text))]
-    return await provider.structured(Extraction).ainvoke(messages)
+    return await provider.structured(Extraction).ainvoke(messages, config=_trace(EXTRACT_PROMPT))
 
 
 async def classify_risk(text: str) -> RiskResult:
     messages = [SystemMessage(load_prompt(GUARDRAIL_PROMPT)), HumanMessage(wrap_inquiry(text))]
-    return await provider.structured(RiskResult).ainvoke(messages)
+    return await provider.structured(RiskResult).ainvoke(messages, config=_trace(GUARDRAIL_PROMPT))
 
 
 async def transcribe(audio: bytes, mime_type: str) -> str:
@@ -73,5 +79,5 @@ async def transcribe(audio: bytes, mime_type: str) -> str:
             },
         ]
     )
-    result = await provider.get_model().ainvoke([message])
+    result = await provider.get_model().ainvoke([message], config=_trace(TRANSCRIBE_PROMPT))
     return str(result.text if hasattr(result, "text") else result.content).strip()
