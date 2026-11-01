@@ -1,8 +1,8 @@
 # Phase 08: Customer Hub (frontend)
 
-- **Status:** Not started
+- **Status:** Done
 - **Depends on:** [07](phase-07.md)
-- **Decisions:** [D-005](../decisions.md#d-005), [D-016](../decisions.md#d-016)
+- **Decisions:** [D-005](../decisions.md#d-005), [D-016](../decisions.md#d-016), [D-022](../decisions.md#d-022), [D-023](../decisions.md#d-023)
 
 ## Goal
 A Next.js app with a Customer Hub that simulates customers messaging the business, including ready-made
@@ -27,15 +27,15 @@ frontend/src/hooks/usePolling.ts
 ```
 
 ## Tasks
-- [ ] Scaffold app; install shadcn components: button, input, card, badge, scroll-area, select.
-- [ ] Session switcher: 3–4 fake customers (name, phone, state) stored in `localStorage`; each has its own `conversation_id`.
-- [ ] Scenario presets (one click sends the message):
+- [x] Scaffold app; install shadcn components: button, input, card, badge, scroll-area, select.
+- [x] Session switcher: 3–4 fake customers (name, phone, state) stored in `localStorage`; each has its own `conversation_id`.
+- [x] Scenario presets (one click sends the message):
       complete apparel order · Hinglish incomplete order · multi-item fabrication · cancellation ·
       injection attempt · off-topic message.
-- [ ] Chat stream: user bubbles, business replies, status chips (`Awaiting approval`, `Needs info`),
+- [x] Chat stream: user bubbles, business replies, status chips (`Awaiting approval`, `Needs info`),
       PDF link card when a quote is sent.
-- [ ] Poll `messages?since=` every 2–3 s while visible ([D-016](../decisions.md#d-016)).
-- [ ] All money formatted by `formatPaise`; no arithmetic in the frontend ([D-005](../decisions.md#d-005)).
+- [x] Poll `messages?since=` every 2–3 s while visible ([D-016](../decisions.md#d-016)).
+- [x] All money formatted by `formatPaise`; no arithmetic in the frontend ([D-005](../decisions.md#d-005)).
 
 ## Exit criteria
 - Demo: pick customer → click "complete apparel order" → see "we're preparing your quote" and the
@@ -48,3 +48,14 @@ frontend/src/hooks/usePolling.ts
 
 ## Notes / changelog
 - 2026-10-31: phase file created.
+- 2026-11-01: implemented on branch `phase-08-customer-hub`.
+  - Next.js 16.4.3 + React 19.2 + Tailwind v4 ([D-023](../decisions.md#d-023)); shadcn-style primitives
+    hand-written in `components/ui.tsx`; typed client `lib/api.ts`; `lib/money.ts` formats paise only.
+  - Customer Hub: 3 demo customers (CG, MH, state unknown) with conversation ids in localStorage
+    (`useSyncExternalStore`), scenario presets fetched from `GET /api/demo/scenarios` (including a
+    Hinglish follow-up), chat stream with status chip, polling every 2.5 s while visible (D-016),
+    PDF link card on quote messages.
+  - Backend: offline demo brain `KP_LLM_MODEL=demo` ([D-022](../decisions.md#d-022)), so the UI works without an API key.
+  - `.claude/launch.json` runs `backend-demo` (port 8000) and `frontend` (port 3000).
+  - Verified in the browser: preset → quote KP-2026-0001 awaiting approval, reply shown in chat.
+    `npm run lint`, `tsc`, `npm run build` pass. Backend tests: 366.

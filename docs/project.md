@@ -360,7 +360,7 @@ kaampilot/
 | [05](phases/phase-05.md) | Human-in-the-loop | Done |
 | [06](phases/phase-06.md) | Quotation PDF | Done |
 | [07](phases/phase-07.md) | API layer | Done |
-| [08](phases/phase-08.md) | Customer Hub (frontend) | Not started |
+| [08](phases/phase-08.md) | Customer Hub (frontend) | Done |
 | [09](phases/phase-09.md) | Business Ops console | Not started |
 | [10](phases/phase-10.md) | Guardrails & voice | Not started |
 | [11](phases/phase-11.md) | Dispatch & follow-ups | Not started |

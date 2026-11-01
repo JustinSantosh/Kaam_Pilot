@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Query, Request
 
 from app.api.views import message_out
+from app.llm import demo
 from app.schemas.api import ChatSendRequest, ChatSendResponse, MessageOut
 
 router = APIRouter(prefix="/api", tags=["customer"])
@@ -12,6 +13,20 @@ async def send(body: ChatSendRequest, request: Request) -> ChatSendResponse:
         body.conversation_id, body.message, customer=body.customer.model_dump()
     )
     return ChatSendResponse(**result.model_dump())
+
+
+@router.get("/demo/scenarios")
+async def demo_scenarios() -> list[dict[str, str | None]]:
+    """Preset messages for the Customer Hub's scenario buttons."""
+    return [
+        {
+            "id": sc["id"],
+            "label": sc["label"],
+            "message": sc["message"],
+            "follow_up": (sc.get("follow_up") or {}).get("message"),
+        }
+        for sc in demo.scenarios()
+    ]
 
 
 @router.get("/conversations/{conversation_id}/messages", response_model=list[MessageOut])
