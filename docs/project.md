@@ -251,26 +251,43 @@ All money is integer paise in JSON. The frontend formats it.
 ```
 `busy` = a quote on this conversation is already waiting for the owner ([D-008](decisions.md#d-008)).
 
-### `GET /api/business/inbox?status=awaiting_approval`
+### `GET /api/business/inbox?status=awaiting_approval|open|closed|all`
 ```json
-[{ "quote_id": "q_…", "number": "KP-2026-0042", "customer_name": "Ravi",
-   "total_paise": 1239000, "item_count": 2, "created_at": "…", "status": "awaiting_approval" }]
+[{ "quote_id": "q_…", "number": "KP-2026-0042", "conversation_id": "c_…", "customer_name": "Ravi",
+   "status": "awaiting_approval", "revision": 1, "total_paise": 1239000, "item_count": 2,
+   "flags": [], "created_at": "…", "updated_at": "…" }]
 ```
 
-### `GET /api/quotes/{quote_id}`
-Full detail: raw query, extraction, validation, priced items, totals, PDF URL, event history.
+### `GET /api/business/catalog`
+SKUs with unit, MOQ, required specs and allowed options, for the owner's edit drawer.
 
-### `POST /api/quotes/{quote_id}/decision`
+### `GET /api/quotes/{quote_id}`
+Full detail: summary fields plus raw query, extraction, validation, priced items, totals, discount,
+`pdf_url`, `revisions`, `customer_notes` (messages received while pending), `edit_errors`, events.
+
+### `POST /api/quotes/{quote_id}/decision?revision=N`
 ```json
 { "action": "approve" }
 { "action": "reject", "reason": "Out of stock" }
 { "action": "edit", "edits": { "items": [{"sku": "TEE-RN-BLK", "quantity": 60}],
-                               "discount_paise": 50000 } }
+                               "discount": {"kind": "percent", "value": 500} } }
+{ "action": "edit", "edits": { "remove_discount": true } }
 ```
-Response: updated quote detail. `edit` returns a new revision still `awaiting_approval`.
+`revision` (optional) is the revision the owner was looking at; a mismatch returns
+409 `stale_revision`. Response: updated quote detail. `edit` returns a new revision, still
+`awaiting_approval`; an invalid edit keeps the revision and fills `edit_errors`. A quote that isn't
+pending returns 409 `quote_not_pending`.
 
-### `GET /api/conversations/{id}/messages`
+### `GET /api/conversations/{id}/messages?since=<last id>`
 Polled by Customer Hub for new replies ([D-016](decisions.md#d-016)).
+
+### `GET /files/quotes/{quote_id}/r{n}[-draft].pdf`
+Quotation PDFs. Only generated names are accepted.
+
+### Errors
+Every error is `{"error": {"code", "message", "details"}}`: `validation_error` (422),
+`not_found` (404), `quote_not_pending` / `stale_revision` (409), `llm_not_configured` (503).
+The full schema is in [openapi.json](openapi.json), generated from the app.
 
 ---
 
@@ -342,7 +359,7 @@ kaampilot/
 | [04](phases/phase-04.md) | Graph core & persistence | Done |
 | [05](phases/phase-05.md) | Human-in-the-loop | Done |
 | [06](phases/phase-06.md) | Quotation PDF | Done |
-| [07](phases/phase-07.md) | API layer | Not started |
+| [07](phases/phase-07.md) | API layer | Done |
 | [08](phases/phase-08.md) | Customer Hub (frontend) | Not started |
 | [09](phases/phase-09.md) | Business Ops console | Not started |
 | [10](phases/phase-10.md) | Guardrails & voice | Not started |

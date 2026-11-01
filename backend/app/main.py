@@ -9,7 +9,8 @@ from app import __version__
 from app.agent.deps import Deps, default_deps
 from app.agent.graph import build_graph
 from app.agent.runtime import Runtime
-from app.api import routes_files
+from app.api import routes_business, routes_chat, routes_files, routes_quotes
+from app.api.errors import install_error_handlers
 from app.config import Settings, get_settings
 from app.db.repo import Repo
 from app.db.session import (
@@ -60,7 +61,9 @@ def create_app(
         allow_headers=["*"],
     )
 
-    app.include_router(routes_files.router)
+    install_error_handlers(app)
+    for module in (routes_chat, routes_business, routes_quotes, routes_files):
+        app.include_router(module.router)
 
     @app.get("/health")
     async def health() -> dict[str, str]:
