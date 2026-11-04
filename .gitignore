@@ -8,14 +8,31 @@ __pycache__/
 
 # Env
 .env
+**/.env
+**/.env.*
+!.env.example
+!backend/.env.example
+!frontend/.env.example
 
 # Runtime storage (DBs, PDFs, audio)
 backend/storage/*
 !backend/storage/.gitkeep
+*.db
+*.sqlite
+*.sqlite3
+*.pdf
 
 # Frontend
 node_modules/
 .next/
+**/node_modules/
+**/.venv/
+**/.next/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+**/test-results/
+**/playwright-report/
 
 # OS / editor
 .DS_Store
