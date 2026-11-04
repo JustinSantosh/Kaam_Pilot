@@ -54,3 +54,7 @@ backend/tests/test_health.py
 - 2026-10-31: implemented. Python 3.12.6, FastAPI 0.162, pytest 9.2, ruff 0.17. `pytest`: 2 passed;
   `ruff check` and `ruff format --check` clean; `uvicorn app.main:app` serves `/health` 200 and `/openapi.json` 200.
   Live-LLM tests are excluded by default (`addopts = -m 'not llm'`); run them with `pytest -m llm`.
+- 2026-11-04: `.env` no longer leaks into tests. `get_settings()` copies only non-`KP_*` keys (provider
+  keys, tracing) into `os.environ`, and `conftest.py` clears `KP_*` from the shell and turns tracing off
+  once the app has read its settings. A `.env` that can't be parsed still stops the test run at import,
+  the same way it stops the app.

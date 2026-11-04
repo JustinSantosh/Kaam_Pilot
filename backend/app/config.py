@@ -1,8 +1,9 @@
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -58,5 +59,9 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     # Provider SDKs read their keys (GOOGLE_API_KEY, OPENAI_API_KEY…) from os.environ, which
     # pydantic-settings doesn't populate. Real environment variables still win over .env.
-    load_dotenv(ENV_FILE, override=False)
+    # KP_* stay out: Settings reads them from .env itself, and in os.environ they would also reach
+    # Settings(_env_file=None), which is how tests opt out of .env.
+    for key, value in dotenv_values(ENV_FILE).items():
+        if value is not None and not key.startswith("KP_"):
+            os.environ.setdefault(key, value)
     return Settings()
