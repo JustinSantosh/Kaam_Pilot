@@ -48,8 +48,6 @@ def repo(app: FastAPI) -> Repo:
 async def client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.post(
-            "/api/auth/login", json={"password": "test-owner-password"}
-        )
+        response = await client.post("/api/auth/login", json={"password": "test-owner-password"})
         assert response.status_code == 200
         yield client

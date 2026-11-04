@@ -31,9 +31,8 @@ def _valid_session(token: str | None, settings: Settings) -> bool:
         expires_at = int(raw_expiry)
     except (ValueError, TypeError):
         return False
-    return (
-        expires_at > int(time.time())
-        and hmac.compare_digest(signature, _signature(password, expires_at))
+    return expires_at > int(time.time()) and hmac.compare_digest(
+        signature, _signature(password, expires_at)
     )
 
 

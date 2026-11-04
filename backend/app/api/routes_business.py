@@ -5,9 +5,7 @@ from app.api.views import summary
 from app.db.repo import OPEN_STATUSES, TERMINAL_STATUSES
 from app.schemas.api import CatalogOption, QuoteSummary
 
-router = APIRouter(
-    prefix="/api/business", tags=["business"], dependencies=[Depends(require_owner)]
-)
+router = APIRouter(prefix="/api/business", tags=["business"], dependencies=[Depends(require_owner)])
 
 STATUS_FILTERS = {
     "awaiting_approval": ["awaiting_approval"],

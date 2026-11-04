@@ -84,9 +84,7 @@ async def test_provider_times_out_with_safe_error(monkeypatch: pytest.MonkeyPatc
         await asyncio.sleep(0.1)
         return value
 
-    monkeypatch.setattr(
-        provider, "get_settings", lambda: SimpleNamespace(llm_timeout_seconds=0.01)
-    )
+    monkeypatch.setattr(provider, "get_settings", lambda: SimpleNamespace(llm_timeout_seconds=0.01))
     with pytest.raises(provider.LLMUnavailableError, match="timed out"):
         await provider.invoke(RunnableLambda(lambda value: value, afunc=slow), "ignored")
 

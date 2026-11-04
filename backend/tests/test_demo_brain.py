@@ -28,9 +28,7 @@ async def demo_client(tmp_path: Path):  # noqa: ANN201
     async with app.router.lifespan_context(app):
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url="http://t") as client:
-            response = await client.post(
-                "/api/auth/login", json={"password": "demo-test-password"}
-            )
+            response = await client.post("/api/auth/login", json={"password": "demo-test-password"})
             assert response.status_code == 200
             yield client
 
