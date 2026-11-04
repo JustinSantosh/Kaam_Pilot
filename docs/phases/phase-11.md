@@ -66,3 +66,7 @@ backend/tests/test_followups.py
   - Verified in the browser: gate + railing for a Mumbai site → ₹1,16,796.40 incl. 18% IGST (checked
     by hand) → approved → PDF card in the chat.
   - Tests: 409 offline (11 new), including jobs surviving a restart and a real ~1.5 s timer firing.
+- 2026-11-04: fixed the approval message being stored twice (a regression from `mark_dispatched`).
+  `dispatch` sets `reply_stored`, but `AgentState` didn't declare it, so LangGraph dropped the value
+  and the runtime stored the reply again. It's now declared, and `ingest` resets it each turn;
+  without the reset, every later reply on that conversation would be lost.

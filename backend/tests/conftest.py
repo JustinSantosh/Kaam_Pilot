@@ -1,3 +1,4 @@
+import os
 from collections.abc import AsyncIterator
 from pathlib import Path
 
@@ -10,6 +11,12 @@ from app.config import Settings
 from app.db.repo import Repo
 from app.main import create_app
 from tests.fakes import FakeBrain
+
+# Tests must not depend on the developer's shell or .env. Importing app.main has already cached
+# get_settings(), which is all `pytest -m llm` needs from here.
+for key in [k for k in os.environ if k.startswith("KP_")]:
+    del os.environ[key]
+os.environ["LANGSMITH_TRACING"] = "false"  # test runs never send traces, even if .env enables them
 
 
 @pytest.fixture
