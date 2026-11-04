@@ -14,7 +14,12 @@ from tests.fakes import FakeBrain
 
 @pytest.fixture
 def settings(tmp_path: Path) -> Settings:
-    return Settings(storage_dir=tmp_path / "storage", business_state="CG", _env_file=None)
+    return Settings(
+        storage_dir=tmp_path / "storage",
+        business_state="CG",
+        owner_password="test-owner-password",
+        _env_file=None,
+    )
 
 
 @pytest.fixture
@@ -43,4 +48,6 @@ def repo(app: FastAPI) -> Repo:
 async def client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post("/api/auth/login", json={"password": "test-owner-password"})
+        assert response.status_code == 200
         yield client

@@ -50,18 +50,24 @@ def spec_vocabulary(catalog: Catalog) -> str:
 
 async def classify_intent(text: str) -> IntentResult:
     messages = [SystemMessage(load_prompt(INTENT_PROMPT)), HumanMessage(wrap_inquiry(text))]
-    return await provider.structured(IntentResult).ainvoke(messages, config=_trace(INTENT_PROMPT))
+    return await provider.invoke(
+        provider.structured(IntentResult), messages, config=_trace(INTENT_PROMPT)
+    )
 
 
 async def extract(text: str, *, catalog: Catalog) -> Extraction:
     system = load_prompt(EXTRACT_PROMPT).replace("{{VOCABULARY}}", spec_vocabulary(catalog))
     messages = [SystemMessage(system), HumanMessage(wrap_inquiry(text))]
-    return await provider.structured(Extraction).ainvoke(messages, config=_trace(EXTRACT_PROMPT))
+    return await provider.invoke(
+        provider.structured(Extraction), messages, config=_trace(EXTRACT_PROMPT)
+    )
 
 
 async def classify_risk(text: str) -> RiskResult:
     messages = [SystemMessage(load_prompt(GUARDRAIL_PROMPT)), HumanMessage(wrap_inquiry(text))]
-    return await provider.structured(RiskResult).ainvoke(messages, config=_trace(GUARDRAIL_PROMPT))
+    return await provider.invoke(
+        provider.structured(RiskResult), messages, config=_trace(GUARDRAIL_PROMPT)
+    )
 
 
 async def transcribe(audio: bytes, mime_type: str) -> str:
@@ -79,5 +85,7 @@ async def transcribe(audio: bytes, mime_type: str) -> str:
             },
         ]
     )
-    result = await provider.get_model().ainvoke([message], config=_trace(TRANSCRIBE_PROMPT))
+    result = await provider.invoke(
+        provider.get_model(), [message], config=_trace(TRANSCRIBE_PROMPT)
+    )
     return str(result.text if hasattr(result, "text") else result.content).strip()

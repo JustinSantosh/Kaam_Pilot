@@ -18,11 +18,18 @@ CATALOG = load_catalog()
 
 @pytest.fixture
 async def demo_client(tmp_path: Path):  # noqa: ANN201
-    settings = Settings(storage_dir=tmp_path / "s", llm_model=DEMO_MODEL, _env_file=None)
+    settings = Settings(
+        storage_dir=tmp_path / "s",
+        llm_model=DEMO_MODEL,
+        owner_password="demo-test-password",
+        _env_file=None,
+    )
     app: FastAPI = create_app(settings)
     async with app.router.lifespan_context(app):
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url="http://t") as client:
+            response = await client.post("/api/auth/login", json={"password": "demo-test-password"})
+            assert response.status_code == 200
             yield client
 
 

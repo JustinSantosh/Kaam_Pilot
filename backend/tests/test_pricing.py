@@ -1,6 +1,8 @@
 import random
 
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from app.schemas.pricing import Catalog, CatalogItem, Discount, PricingInput
 from app.services.money import paise_to_display
@@ -268,6 +270,39 @@ def test_random_cart_invariants(seed: int) -> None:
         assert t.cgst_paise == t.sgst_paise == 0
     else:
         assert t.igst_paise == 0
+
+
+@settings(max_examples=100, deadline=None)
+@given(
+    quantities=st.lists(st.integers(min_value=20, max_value=500), min_size=1, max_size=5),
+    discount_bp=st.integers(min_value=0, max_value=10000),
+    inter_state=st.booleans(),
+)
+def test_hypothesis_quote_money_conservation(
+    quantities: list[int], discount_bp: int, inter_state: bool
+) -> None:
+    lines = [tee(quantity, "dtf") for quantity in quantities]
+    q = quote(
+        *lines,
+        state="MH" if inter_state else "CG",
+        discount=Discount(kind="percent", value=discount_bp),
+    )
+    totals = q.totals
+
+    assert sum(line.line_subtotal_paise for line in q.lines) == totals.subtotal_paise
+    assert sum(line.discount_paise for line in q.lines) == totals.discount_paise
+    assert totals.subtotal_paise - totals.discount_paise == totals.taxable_paise
+    for line in q.lines:
+        line_tax = line.cgst_paise + line.sgst_paise + line.igst_paise
+        assert line.taxable_paise + line_tax == line.line_total_paise
+        assert line.discount_paise <= line.line_subtotal_paise
+    assert totals.tax_paise == totals.cgst_paise + totals.sgst_paise + totals.igst_paise
+    assert totals.taxable_paise + totals.tax_paise == totals.total_paise
+    assert sum(line.line_total_paise for line in q.lines) == totals.total_paise
+    if inter_state:
+        assert totals.cgst_paise == totals.sgst_paise == 0
+    else:
+        assert totals.igst_paise == 0
 
 
 # --- display --------------------------------------------------------------------------------------

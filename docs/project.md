@@ -121,7 +121,9 @@ START
 
 Outside the graph, `Runtime` stores every customer/business message, refuses to start a run while
 a quote is pending (the message becomes a note, D-008), cancels the follow-up when the customer
-replies, and treats a bare "YES" after sending as acceptance.
+replies, and treats a bare "YES" after sending as acceptance. A cancellation is processed when the
+thread is not paused; messages during owner review remain notes and do not interrupt the approval
+workflow.
 
 Key differences from the original draft (each recorded as a decision):
 - Clarification is decided by code **after** extraction, not by the intent LLM ([D-004](decisions.md#d-004)).
@@ -142,7 +144,7 @@ Key differences from the original draft (each recorded as a decision):
 | LLM | provider-agnostic via `init_chat_model` | model chosen by config ([D-014](decisions.md#d-014)) |
 | Speech-to-text | OpenAI Whisper API (or compatible) | Phase 10 |
 | Pricing | Pure Python + `catalog.json`, `Decimal` | [D-005](decisions.md#d-005), [D-006](decisions.md#d-006) |
-| PDF | Jinja2 + WeasyPrint (proposed) | Windows caveat, see [D-012](decisions.md#d-012) |
+| PDF | Jinja2 + xhtml2pdf | Pure-Python HTML renderer; selected by [D-021](decisions.md#d-021), superseding D-012. |
 | Scheduling | APScheduler + SQLAlchemy job store | [D-013](decisions.md#d-013) |
 | Tracing | LangSmith | Phase 12 |
 | Tests / evals | pytest, custom eval runner | [D-017](decisions.md#d-017) |
@@ -292,11 +294,18 @@ pending returns 409 `quote_not_pending`.
 Polled by Customer Hub for new replies ([D-016](decisions.md#d-016)).
 
 ### `GET /files/quotes/{quote_id}/r{n}[-draft].pdf`
-Quotation PDFs. Only generated names are accepted.
+Quotation PDFs. Only generated names are accepted. Draft PDFs require an owner session; the final
+PDF is available after the quote has been approved and dispatched so the customer can download it.
+
+### Owner session
+`POST /api/auth/login` accepts `{ "password": "…" }` and sets a signed, HttpOnly session cookie.
+`GET /api/auth/session` validates it; `POST /api/auth/logout` clears it. Business inbox/catalog,
+quote detail/decisions, and draft PDFs require this session.
 
 ### Errors
 Every error is `{"error": {"code", "message", "details"}}`: `validation_error` (422),
-`not_found` (404), `quote_not_pending` / `stale_revision` (409), `llm_not_configured` (503).
+`not_found` (404), `quote_not_pending` / `stale_revision` (409), `unauthorized` (401),
+`rate_limited` (429), `llm_not_configured` / `llm_unavailable` (503).
 The full schema is in [openapi.json](openapi.json), generated from the app.
 
 ---
@@ -401,12 +410,24 @@ npm run dev                                          # http://localhost:3000
 | Var | Purpose |
 |---|---|
 | `KP_LLM_MODEL` | e.g. `openai:<model>` or `google_genai:<model>` ([D-014](decisions.md#d-014)) |
+| `KP_LLM_TIMEOUT_SECONDS` | Overall timeout for one LLM task (default `30`) |
 | `OPENAI_API_KEY` / `GOOGLE_API_KEY` | provider key |
+| `KP_OWNER_PASSWORD` | Owner password used for Business Ops login; required to enable owner access |
+| `KP_OWNER_SESSION_TTL_SECONDS` | Signed owner-session lifetime (default `28800`) |
+| `KP_OWNER_COOKIE_SECURE` | Set `true` behind HTTPS; required in production |
+| `KP_ENVIRONMENT` | `development` or `production`; production validates owner credentials and CORS |
 | `KP_BUSINESS_STATE` | seller's state code for GST place of supply (e.g. `CG`) |
 | `KP_STORAGE_DIR` | where DBs and PDFs live (default `backend/storage`) |
 | `KP_FOLLOWUP_HOURS` | default `48` |
+| `KP_CHAT_RATE_LIMIT_PER_MINUTE` | Per-client chat/audio request limit (default `30`) |
+| `KP_SQLITE_BUSY_TIMEOUT_MS` | SQLite lock wait in milliseconds (default `5000`) |
+| `KP_CORS_ORIGINS` | JSON array of allowed frontend origins; do not use `*` in production |
 | `LANGSMITH_API_KEY`, `LANGSMITH_TRACING` | tracing (Phase 12) |
 | `NEXT_PUBLIC_API_URL` | frontend → backend base URL |
+
+SQLite plus the APScheduler job store is a **single-process deployment**. Run with one Uvicorn
+worker (`--workers 1`); startup warns if `WEB_CONCURRENCY` or `UVICORN_WORKERS` requests multiple
+workers. The in-process chat limiter and per-conversation locks do not coordinate across hosts.
 
 ---
 

@@ -3,6 +3,7 @@ node might repeat it (D-007, D-010)."""
 
 import asyncio
 import secrets
+from collections import defaultdict
 from collections.abc import Iterable
 from datetime import datetime
 from typing import Any
@@ -31,6 +32,10 @@ class Repo:
         # Quote numbers are count-based; serialise allocation so two conversations pricing at
         # once can't read the same count. One process only (D-013), so a local lock is enough.
         self._number_lock = asyncio.Lock()
+        self._conversation_locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+
+    def conversation_lock(self, conversation_id: str) -> asyncio.Lock:
+        return self._conversation_locks[conversation_id]
 
     # --- conversations & messages -----------------------------------------------------------------
 
@@ -222,6 +227,46 @@ class Repo:
                 )
             )
             return quote
+
+    async def mark_dispatched(self, quote_id: str, pdf_path: str, text: str) -> bool:
+        """Atomically persist sent status, final PDF path, audit events, and in-app delivery."""
+        async with self.sessions() as s, s.begin():
+            quote = await s.get(Quote, quote_id)
+            if quote is None:
+                raise NotFoundError(quote_id)
+            if quote.sent_at is not None:
+                return False
+            if quote.status != "awaiting_approval":
+                raise ValueError(f"cannot dispatch a quote in status {quote.status}")
+
+            previous = quote.status
+            quote.status = "sent"
+            quote.sent_at = utcnow()
+            quote.pdf_path = pdf_path
+            s.add(
+                QuoteEvent(
+                    quote_id=quote_id,
+                    kind="status:approved",
+                    payload={"from": previous},
+                )
+            )
+            s.add(
+                QuoteEvent(
+                    quote_id=quote_id,
+                    kind="status:sent",
+                    payload={"from": "approved"},
+                )
+            )
+            s.add(
+                Message(
+                    conversation_id=quote.conversation_id,
+                    role="business",
+                    text=text,
+                    quote_id=quote_id,
+                    kind="quote",
+                )
+            )
+            return True
 
     async def add_event(self, quote_id: str, kind: str, payload: dict | None = None) -> None:
         async with self.sessions() as s, s.begin():

@@ -9,7 +9,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.agent.runtime import QuoteNotPendingError, StaleRevisionError
 from app.db.repo import NotFoundError
-from app.llm.provider import LLMNotConfiguredError
+from app.llm.provider import LLMNotConfiguredError, LLMUnavailableError
 
 logger = logging.getLogger("kaampilot")
 
@@ -36,6 +36,14 @@ def install_error_handlers(app: FastAPI) -> None:
     async def no_llm(_: Request, exc: LLMNotConfiguredError) -> JSONResponse:
         return error(503, "llm_not_configured", str(exc))
 
+    @app.exception_handler(LLMUnavailableError)
+    async def llm_unavailable(_: Request, exc: LLMUnavailableError) -> JSONResponse:
+        return error(
+            503,
+            "llm_unavailable",
+            "the quoting assistant is temporarily unavailable; please retry shortly",
+        )
+
     @app.exception_handler(RequestValidationError)
     async def invalid(_: Request, exc: RequestValidationError) -> JSONResponse:
         details = [{"loc": list(e.get("loc", [])), "msg": e.get("msg", "")} for e in exc.errors()]
@@ -43,7 +51,16 @@ def install_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(StarletteHTTPException)
     async def http_error(_: Request, exc: StarletteHTTPException) -> JSONResponse:
-        code = {404: "not_found", 405: "method_not_allowed"}.get(exc.status_code, "http_error")
+        code = {
+            401: "unauthorized",
+            403: "forbidden",
+            404: "not_found",
+            405: "method_not_allowed",
+            413: "payload_too_large",
+            415: "unsupported_media_type",
+            429: "rate_limited",
+            503: "service_unavailable",
+        }.get(exc.status_code, "http_error")
         return error(exc.status_code, code, str(exc.detail))
 
     @app.exception_handler(Exception)

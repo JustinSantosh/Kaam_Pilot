@@ -81,22 +81,30 @@ class FollowupService:
 
     async def run_followup(self, quote_id: str) -> bool:
         quote = await self.repo.get_quote(quote_id)
-        if quote is None or quote.status != "sent" or quote.sent_at is None:
-            if quote is not None:
-                await self.repo.add_event(quote_id, "followup_skipped", {"status": quote.status})
+        if quote is None:
             return False
-        last_reply = await self.repo.last_customer_message_at(quote.conversation_id)
-        sent_at = quote.sent_at.replace(tzinfo=None)
-        if last_reply is not None and last_reply.replace(tzinfo=None) > sent_at:
-            await self.repo.add_event(quote_id, "followup_skipped", {"reason": "customer replied"})
-            return False
-        conv = await self.repo.get_conversation(quote.conversation_id)
-        first_name = (conv.customer_name.split() or [""])[0] if conv else ""
-        text = NUDGE.format(
-            name=f" {first_name}" if first_name else "",
-            number=quote.number,
-            total=paise_to_display(quote.total_paise),
-        )
-        await self.outbound.send(quote.conversation_id, text, quote_id=quote_id, kind="quote")
-        await self.repo.set_status(quote_id, "followed_up")
-        return True
+        async with self.repo.conversation_lock(quote.conversation_id):
+            quote = await self.repo.get_quote(quote_id)
+            if quote is None or quote.status != "sent" or quote.sent_at is None:
+                if quote is not None:
+                    await self.repo.add_event(
+                        quote_id, "followup_skipped", {"status": quote.status}
+                    )
+                return False
+            last_reply = await self.repo.last_customer_message_at(quote.conversation_id)
+            sent_at = quote.sent_at.replace(tzinfo=None)
+            if last_reply is not None and last_reply.replace(tzinfo=None) > sent_at:
+                await self.repo.add_event(
+                    quote_id, "followup_skipped", {"reason": "customer replied"}
+                )
+                return False
+            conv = await self.repo.get_conversation(quote.conversation_id)
+            first_name = (conv.customer_name.split() or [""])[0] if conv else ""
+            text = NUDGE.format(
+                name=f" {first_name}" if first_name else "",
+                number=quote.number,
+                total=paise_to_display(quote.total_paise),
+            )
+            await self.outbound.send(quote.conversation_id, text, quote_id=quote_id, kind="quote")
+            await self.repo.set_status(quote_id, "followed_up")
+            return True
