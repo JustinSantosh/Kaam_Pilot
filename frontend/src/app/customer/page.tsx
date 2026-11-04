@@ -42,7 +42,13 @@ export default function CustomerHub() {
     api
       .scenarios()
       .then(setScenarios)
-      .catch(() => setScenarios([]));
+      .catch((e: unknown) => {
+        setError(
+          e instanceof ApiError
+            ? `${e.message} (${e.code})`
+            : "Could not load the demo scenarios.",
+        );
+      });
   }, []);
 
   const poll = useCallback(async () => {
@@ -58,8 +64,15 @@ export default function CustomerHub() {
     }
     setError(null);
   }, [conversationId, messages]);
+  const reportPollError = useCallback((e: unknown) => {
+    setError(
+      e instanceof ApiError
+        ? `${e.message} (${e.code})`
+        : "Can't reach the backend. Is it running on port 8000?",
+    );
+  }, []);
 
-  usePolling(poll, 2500, Boolean(conversationId));
+  usePolling(poll, 2500, Boolean(conversationId), reportPollError);
 
   const send = (text: string) =>
     submit((who) => api.send(conversationId!, who, text));

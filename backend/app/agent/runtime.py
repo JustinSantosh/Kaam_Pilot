@@ -6,9 +6,7 @@
 - Serialises work per conversation with an asyncio lock (single process, D-011).
 """
 
-import asyncio
 import re
-from collections import defaultdict
 from typing import Any, Literal
 
 from langgraph.graph.state import CompiledStateGraph
@@ -67,7 +65,6 @@ class Runtime:
         self.graph = graph
         self.repo = repo
         self.followups = followups
-        self._locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
     async def pending(self, conversation_id: str) -> dict[str, Any] | None:
         """The interrupt payload if this conversation is paused at the approval step."""
@@ -86,7 +83,7 @@ class Runtime:
         kind: str = "text",
     ) -> TurnResult:
         customer = customer or {}
-        async with self._locks[conversation_id]:
+        async with self.repo.conversation_lock(conversation_id):
             await self.repo.ensure_conversation(
                 conversation_id, name=customer.get("name", ""), phone=customer.get("phone", "")
             )
@@ -135,7 +132,7 @@ class Runtime:
         if quote is None:
             raise NotFoundError(quote_id)
         conversation_id = quote.conversation_id
-        async with self._locks[conversation_id]:
+        async with self.repo.conversation_lock(conversation_id):
             waiting = await self.pending(conversation_id)
             if waiting is None or waiting["quote_id"] != quote_id:
                 raise QuoteNotPendingError(quote_id)
@@ -157,7 +154,7 @@ class Runtime:
             status = "rejected"
         else:
             status = "completed"
-        if reply:
+        if reply and not out.get("reply_stored"):
             await self.repo.add_message(
                 conversation_id,
                 "business",

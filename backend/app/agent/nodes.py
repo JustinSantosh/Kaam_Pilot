@@ -12,7 +12,6 @@ from langgraph.types import interrupt
 
 from app.agent.deps import Deps
 from app.agent.state import AgentState
-from app.db.models import utcnow
 from app.schemas.decision import DecisionAdapter, Edits
 from app.schemas.extraction import Extraction
 from app.schemas.pricing import Discount, PricingInput
@@ -283,15 +282,18 @@ class Nodes:
         if current.sent_at is not None:  # already dispatched; never send twice
             return {"reply": "", "outcome": "approved"}
         final_pdf = await self._render(quote_id, draft=False)
-        await repo.set_status(quote_id, "approved", pdf_path=final_pdf)
-        quote = await repo.set_status(quote_id, "sent", sent_at=utcnow())
+        reply = REPLY_APPROVED.format(
+            number=current.number, total=paise_to_display(current.total_paise)
+        )
+        dispatched = await repo.mark_dispatched(quote_id, final_pdf, reply)
+        if not dispatched:
+            return {"reply": "", "outcome": "approved"}
         if self.deps.followups is not None:
             when = self.deps.followups.schedule(quote_id)
             await repo.add_event(quote_id, "followup_scheduled", {"at": when.isoformat()})
         return {
-            "reply": REPLY_APPROVED.format(
-                number=quote.number, total=paise_to_display(quote.total_paise)
-            ),
+            "reply": reply,
+            "reply_stored": True,
             "reply_kind": "quote",
             "outcome": "approved",
             "pdf_path": final_pdf,

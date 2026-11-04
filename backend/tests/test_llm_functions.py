@@ -1,5 +1,7 @@
 """LLM functions with the model replaced at the `provider.structured` boundary (D-014)."""
 
+import asyncio
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -59,6 +61,34 @@ async def test_extract_includes_catalog_vocabulary(fake: FakeLLM) -> None:
     assert "{{VOCABULARY}}" not in system.content
     assert "- print_type: one of dtf, embroidery, screen" in system.content
     assert "- size_mix\n" in system.content
+
+
+async def test_provider_retries_transient_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = 0
+
+    def flaky(value: object) -> str:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise ConnectionError("temporary network issue")
+        return str(value)
+
+    monkeypatch.setattr(provider, "get_settings", lambda: SimpleNamespace(llm_timeout_seconds=1))
+    result = await provider.invoke(RunnableLambda(flaky), "ok")
+    assert result == "ok"
+    assert calls == 2
+
+
+async def test_provider_times_out_with_safe_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def slow(value: object) -> object:
+        await asyncio.sleep(0.1)
+        return value
+
+    monkeypatch.setattr(
+        provider, "get_settings", lambda: SimpleNamespace(llm_timeout_seconds=0.01)
+    )
+    with pytest.raises(provider.LLMUnavailableError, match="timed out"):
+        await provider.invoke(RunnableLambda(lambda value: value, afunc=slow), "ignored")
 
 
 def test_customer_cannot_close_the_inquiry_block() -> None:

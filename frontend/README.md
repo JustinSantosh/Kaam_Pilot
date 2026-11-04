@@ -14,3 +14,5 @@ npm run build
 
 Set `NEXT_PUBLIC_API_URL` if the backend runs elsewhere. All money arrives from the API as integer
 paise and is only formatted here (`src/lib/money.ts`); the frontend never calculates prices (D-005).
+The Business Ops console requires the owner password configured as `KP_OWNER_PASSWORD` by the
+backend. Copy `.env.example` to `.env.local` when the API URL differs from the default.

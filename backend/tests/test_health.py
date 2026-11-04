@@ -12,3 +12,12 @@ async def test_health_ok(client: httpx.AsyncClient) -> None:
 
 async def test_lifespan_creates_storage_dir(client: httpx.AsyncClient, settings: Settings) -> None:
     assert settings.storage_dir.is_dir()
+
+
+async def test_ready_checks_storage_and_scheduler(client: httpx.AsyncClient) -> None:
+    response = await client.get("/ready")
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": "ready",
+        "checks": {"records_db": True, "checkpointer": True, "scheduler": True},
+    }

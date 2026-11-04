@@ -13,15 +13,19 @@ def records_url(storage_dir: Path) -> str:
     return f"sqlite+aiosqlite:///{(storage_dir / RECORDS_DB).as_posix()}"
 
 
-def make_engine(url: str) -> AsyncEngine:
+def make_engine(url: str, *, busy_timeout_ms: int = 5000) -> AsyncEngine:
     engine = create_async_engine(url)
 
     @event.listens_for(engine.sync_engine, "connect")
     def _sqlite_pragmas(dbapi_conn, _record) -> None:  # noqa: ANN001
         cursor = dbapi_conn.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.execute("PRAGMA journal_mode=WAL")
-        cursor.close()
+        try:
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.execute(f"PRAGMA busy_timeout={busy_timeout_ms}")
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA synchronous=NORMAL")
+        finally:
+            cursor.close()
 
     return engine
 

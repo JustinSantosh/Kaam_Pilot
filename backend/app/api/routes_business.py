@@ -1,10 +1,13 @@
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 
+from app.api.auth import require_owner
 from app.api.views import summary
 from app.db.repo import OPEN_STATUSES, TERMINAL_STATUSES
 from app.schemas.api import CatalogOption, QuoteSummary
 
-router = APIRouter(prefix="/api/business", tags=["business"])
+router = APIRouter(
+    prefix="/api/business", tags=["business"], dependencies=[Depends(require_owner)]
+)
 
 STATUS_FILTERS = {
     "awaiting_approval": ["awaiting_approval"],

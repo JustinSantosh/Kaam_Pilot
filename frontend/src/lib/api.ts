@@ -157,7 +157,11 @@ export class ApiError extends Error {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+    credentials: "include",
+    headers: {
+      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...(init?.headers ?? {}),
+    },
     cache: "no-store",
   });
   if (!res.ok) {
@@ -171,6 +175,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const fileUrl = (path: string | null) => (path ? `${API_URL}${path}` : null);
 
 export const api = {
+  authSession: () => request<{ authenticated: boolean }>("/api/auth/session"),
+  login: (password: string) =>
+    request<{ authenticated: boolean }>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ password }),
+    }),
+  logout: () =>
+    request<{ authenticated: boolean }>("/api/auth/logout", { method: "POST" }),
   scenarios: () => request<Scenario[]>("/api/demo/scenarios"),
   send: (conversationId: string, customer: Customer, message: string) =>
     request<ChatSendResponse>("/api/chat/send", {
@@ -184,7 +196,11 @@ export const api = {
     form.append("phone", customer.phone);
     if (customer.state) form.append("state", customer.state);
     form.append("audio", audio, "voice-note.webm");
-    const res = await fetch(`${API_URL}/api/chat/send-audio`, { method: "POST", body: form });
+    const res = await fetch(`${API_URL}/api/chat/send-audio`, {
+      method: "POST",
+      body: form,
+      credentials: "include",
+    });
     if (!res.ok) {
       const body = await res.json().catch(() => null);
       throw new ApiError(res.status, body?.error?.code ?? "http_error", body?.error?.message ?? res.statusText);

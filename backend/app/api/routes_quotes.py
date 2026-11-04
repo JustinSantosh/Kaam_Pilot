@@ -1,13 +1,14 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Query, Request
+from fastapi import APIRouter, Body, Depends, Query, Request
 
+from app.api.auth import require_owner
 from app.api.views import detail
 from app.db.repo import NotFoundError
 from app.schemas.api import QuoteDetail
 from app.schemas.decision import Decision
 
-router = APIRouter(prefix="/api/quotes", tags=["business"])
+router = APIRouter(prefix="/api/quotes", tags=["business"], dependencies=[Depends(require_owner)])
 
 
 async def _detail(request: Request, quote_id: str) -> QuoteDetail:

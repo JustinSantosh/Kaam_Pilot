@@ -64,6 +64,8 @@ way it does, what it costs, and why the obvious alternatives were rejected.
 | [D-022](#d-022) | Offline demo brain (`KP_LLM_MODEL=demo`) | Accepted | 08 |
 | [D-023](#d-023) | Frontend: Next.js 16 + Tailwind, hand-written UI primitives | Accepted | 08 |
 | [D-024](#d-024) | Voice: transcribe with the configured model, before the graph | Accepted | 10 |
+| [D-025](#d-025) | Owner access: signed HttpOnly session cookie | Accepted | 13 |
+| [D-026](#d-026) | Chat abuse control: process-local fixed-window limit | Accepted | 13 |
 
 ---
 
@@ -501,3 +503,32 @@ way it does, what it costs, and why the obvious alternatives were rejected.
 - **Why not:**
   - *Whisper*: a second provider, key and bill for one feature.
   - *Transcribe inside the graph*: puts audio bytes in checkpoints and complicates resume.
+
+<a id="d-025"></a>
+## D-025: Owner access: signed HttpOnly session cookie
+- **Date:** 2026-11-04 · **Status:** Accepted · **Phase:** [13](phases/phase-13.md)
+- **Context:** The Business Ops API can approve and send commercial quotes, and previously had no
+  authentication.
+- **Decision:** Require a configurable owner password to establish a short-lived, HMAC-signed,
+  HttpOnly, SameSite=Lax cookie. Protect inbox/catalog, quote details/decisions, and draft PDFs.
+  Final PDFs are readable after dispatch so the customer can access the approved document.
+- **Why it matters:** Owner decisions are binding business actions; exposing them to unauthenticated
+  callers is unacceptable.
+- **Effects:** Passwords are never returned or logged; production requires a long password, explicit
+  non-wildcard CORS origins, and Secure cookies over HTTPS.
+- **Why not:**
+  - *No auth for a single-business demo*: leaves approve/reject endpoints public.
+  - *Store credentials in frontend local storage*: unnecessarily exposes a reusable secret to script.
+
+<a id="d-026"></a>
+## D-026: Chat abuse control: process-local fixed-window limit
+- **Date:** 2026-11-04 · **Status:** Accepted · **Phase:** [13](phases/phase-13.md)
+- **Context:** Public chat and audio endpoints can trigger model work and consume storage.
+- **Decision:** Limit chat/audio POSTs per client IP in a fixed 60-second window and return the normal
+  error envelope with `429 rate_limited`.
+- **Why it matters:** Bounds accidental bursts and simple abuse without adding a service dependency.
+- **Effects:** The limiter is in memory and works only in the documented single-process deployment.
+  Multi-instance deployments need a shared limiter when the project moves off SQLite.
+- **Why not:**
+  - *Redis-backed limiting now*: adds infrastructure to the current single-process MVP.
+  - *No limit*: permits unbounded provider calls and upload bursts.

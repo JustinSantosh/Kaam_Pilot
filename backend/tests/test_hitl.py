@@ -1,5 +1,7 @@
 """Human-in-the-loop: pause, survive a restart, resume with approve / edit / reject (Phase 05)."""
 
+import asyncio
+
 import pytest
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
@@ -173,6 +175,19 @@ async def test_decisions_on_wrong_quote_or_revision_fail(runtime: Runtime) -> No
     await runtime.decide(result.quote_id, Approve(action="approve"))
     with pytest.raises(QuoteNotPendingError):
         await runtime.decide(result.quote_id, Approve(action="approve"))
+
+
+async def test_two_concurrent_approvals_dispatch_once(runtime: Runtime, repo: Repo) -> None:
+    result = await start(runtime)
+    outcomes = await asyncio.gather(
+        runtime.decide(result.quote_id, Approve(action="approve")),
+        runtime.decide(result.quote_id, Approve(action="approve")),
+        return_exceptions=True,
+    )
+    assert sum(isinstance(outcome, TurnResult) for outcome in outcomes) == 1
+    assert sum(isinstance(outcome, QuoteNotPendingError) for outcome in outcomes) == 1
+    events = await repo.get_events(result.quote_id)
+    assert sum(event.kind == "status:sent" for event in events) == 1
 
 
 async def test_new_request_after_approval_creates_new_quote(runtime: Runtime) -> None:

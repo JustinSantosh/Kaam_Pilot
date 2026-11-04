@@ -20,13 +20,15 @@ Customer Hub ──► FastAPI ──► LangGraph workflow ──────�
 Demo mode (`KP_LLM_MODEL=demo`) swaps the LLM for an offline stand-in that understands the preset
 scenarios ([D-022](docs/decisions.md#d-022)). Everything else is the real code path.
 
-```bash
+```powershell
 # backend
 cd backend
 python -m venv .venv
-.venv/Scripts/activate            # macOS/Linux: source .venv/bin/activate
+.venv\Scripts\Activate.ps1
 pip install -e ".[dev,google]"
-KP_LLM_MODEL=demo uvicorn app.main:app --port 8000 --workers 1
+Copy-Item .env.example .env       # set KP_OWNER_PASSWORD before using Business Ops
+$env:KP_LLM_MODEL = "demo"
+uvicorn app.main:app --port 8000 --workers 1
 ```
 
 ```bash
@@ -36,7 +38,8 @@ npm install
 npm run dev                       # http://localhost:3000
 ```
 
-Open **http://localhost:3000/customer**, click a scenario, then review it at **/business**.
+Open **http://localhost:3000/customer**, click a scenario, then sign in at **/business** with
+`KP_OWNER_PASSWORD` from `backend/.env`.
 Optional: seed a demo database with every state: `python -m scripts.seed_demo`.
 
 ### With Docker
@@ -69,6 +72,7 @@ Then run the live checks: `pytest -m llm` (golden inquiries) and
 | Guardrails | Injection rules (no LLM call needed), money-override flags, LLM risk check that fails open. |
 | Voice | Voice notes transcribed by the configured model, then the same pipeline as text. |
 | Follow-ups | Persistent 48h follow-up jobs, sent at most once, cancelled on reply; "YES" confirms the order. |
+| Owner access | Business APIs and draft PDFs require a signed, HttpOnly owner session. Final quote PDFs are available after approval. |
 | Frontend | Next.js 16 + Tailwind: Customer Hub (demo customers, presets, chat, mic) and Business Ops (inbox, three-panel inspector, edit drawer, PDF viewer). |
 | Quality | 418 tests, 84-case eval set, CI (ruff, pytest, eval gate, frontend lint + build), CodeRabbit config. |
 
@@ -96,6 +100,6 @@ Live LLM numbers (Gemini 3.5 Flash-Lite) will be added after the first `--mode l
 
 ## Known limitations
 
-Single business and no auth on the Ops console · in-app chat instead of a real WhatsApp channel ·
-SQLite + one process (`--workers 1`) · seed GST rates are illustrative · PDFs print "Rs." (no ₹
-glyph in the built-in fonts) · live LLM accuracy not yet measured.
+Single business · in-app chat instead of a real WhatsApp channel · SQLite and one process
+(`--workers 1`; do not scale horizontally) · seed GST rates are illustrative · live LLM accuracy
+not yet measured. See [docs/AUDIT.md](docs/AUDIT.md) for verified limitations and validation status.

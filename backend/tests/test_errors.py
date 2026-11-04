@@ -16,3 +16,15 @@ async def test_unexpected_errors_use_the_envelope_without_leaking(
     assert resp.status_code == 500
     assert resp.json()["error"]["code"] == "internal_error"
     assert "secret" not in resp.text
+
+
+async def test_chat_rate_limit_uses_error_envelope(client: httpx.AsyncClient, settings) -> None:
+    settings.chat_rate_limit_per_minute = 1
+    body = {"conversation_id": "c_rate", "message": "hello"}
+    first = await client.post("/api/chat/send", json=body)
+    limited = await client.post("/api/chat/send", json=body)
+
+    assert first.status_code == 200
+    assert limited.status_code == 429
+    assert limited.json()["error"]["code"] == "rate_limited"
+    assert limited.headers["retry-after"]

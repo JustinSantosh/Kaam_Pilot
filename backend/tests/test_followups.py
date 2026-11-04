@@ -74,6 +74,21 @@ async def test_followup_is_sent_once(
     assert nudges[0].kind == "quote"
 
 
+async def test_followup_and_customer_reply_are_serialized(
+    runtime: Runtime, repo: Repo, followups: FollowupService
+) -> None:
+    quote_id = await send_quote(runtime)
+    await asyncio.gather(
+        followups.run_followup(quote_id),
+        runtime.handle_message("f1", "hello", customer=CUSTOMER),
+    )
+
+    quote = await repo.get_quote(quote_id)
+    assert quote.status in {"sent", "followed_up"}
+    nudges = [m for m in await repo.list_messages("f1") if m.text.startswith("Hi Ravi")]
+    assert len(nudges) <= 1
+
+
 async def test_customer_reply_cancels_followup(
     runtime: Runtime, repo: Repo, followups: FollowupService, brain: FakeBrain
 ) -> None:
