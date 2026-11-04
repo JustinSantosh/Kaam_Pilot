@@ -38,4 +38,5 @@ class AgentState(TypedDict, total=False):
 
     reply: str  # message for the customer from this turn
     reply_kind: str  # "text", or "quote" when the reply carries the quotation PDF
+    reply_stored: bool  # dispatch already saved `reply` with the sent status; don't store it again
     outcome: Outcome

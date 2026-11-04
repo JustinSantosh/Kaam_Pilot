@@ -1,7 +1,8 @@
 """Graph nodes. Each is thin: call a service, return a partial state update.
 
 Customer-facing messages are not written here; the runtime stores `reply` after the run, so a
-node never sends anything twice (D-010).
+node never sends anything twice (D-010). The exception is `dispatch`: it saves the approval message
+in one transaction with the sent status and sets `reply_stored`, so the runtime skips it.
 """
 
 import asyncio
@@ -83,6 +84,7 @@ class Nodes:
             "edit_errors": [],
             "reply": "",
             "reply_kind": "text",
+            "reply_stored": False,
         }
 
     async def guardrail(self, state: AgentState) -> dict[str, Any]:

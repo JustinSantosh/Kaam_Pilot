@@ -195,3 +195,21 @@ async def test_new_request_after_approval_creates_new_quote(runtime: Runtime) ->
     await runtime.decide(first.quote_id, Approve(action="approve"))
     second = await start(runtime)
     assert second.quote_id != first.quote_id
+
+
+async def test_approval_message_is_stored_once(runtime: Runtime, repo: Repo) -> None:
+    result = await start(runtime)
+    await runtime.decide(result.quote_id, Approve(action="approve"))
+
+    sent = [m for m in await repo.list_messages("c1") if m.kind == "quote"]
+    assert len(sent) == 1
+    assert sent[0].quote_id == result.quote_id
+
+
+async def test_replies_after_approval_are_still_stored(runtime: Runtime, repo: Repo) -> None:
+    result = await start(runtime)
+    await runtime.decide(result.quote_id, Approve(action="approve"))
+
+    turn = await runtime.handle_message("c1", "hello", customer=CUSTOMER)
+    last = (await repo.list_messages("c1"))[-1]
+    assert (last.role, last.text) == ("business", turn.reply)

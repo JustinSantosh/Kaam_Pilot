@@ -68,6 +68,7 @@ async def test_full_flow(client: httpx.AsyncClient, brain: FakeBrain) -> None:
     # chat history, oldest first; polling with `since` returns only newer messages
     msgs = (await client.get("/api/conversations/c_api/messages")).json()
     assert [m["role"] for m in msgs][:2] == ["customer", "business"]
+    assert [m["kind"] for m in msgs].count("quote") == 1  # the customer gets the PDF once
     newer = (await client.get(f"/api/conversations/c_api/messages?since={msgs[-2]['id']}")).json()
     assert newer == msgs[-1:]
 
