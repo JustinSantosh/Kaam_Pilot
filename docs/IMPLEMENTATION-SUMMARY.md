@@ -1,11 +1,14 @@
 # What was built, phase by phase
 
-KaamPilot as of 2026-11-01: **13 phases built**, 418 offline tests passing, 84-case eval set,
-24 recorded decisions, ~10.5k lines across backend, frontend and docs. Each phase's own file in
-[`phases/`](phases/) has the full checklist and changelog; this page is the overview.
+KaamPilot as of 2026-11-11: **13 phases built** plus the audit and hardening pass (GitHub PR #13),
+an offline test suite that needs no API key (`pytest -q` prints the current count), an 84-case eval
+set and 26 recorded decisions. Each phase's own file in [`phases/`](phases/) has the full checklist
+and changelog; this page is the overview. [`AUDIT.md`](AUDIT.md) records what the audit found and
+what is still open.
 
 Status legend: ✅ done and verified · 🟡 done, one part waits on something only you can do
-(see [YOUR-TODO.md](YOUR-TODO.md)).
+(see [YOUR-TODO.md](YOUR-TODO.md)). Every branch below is merged into `main`; the Branch column
+records where each phase was built.
 
 | Phase | Branch | Status |
 |---|---|---|
@@ -22,6 +25,7 @@ Status legend: ✅ done and verified · 🟡 done, one part waits on something o
 | 11 Dispatch & follow-ups | `phase-11-dispatch` | ✅ |
 | 12 Evals | `phase-12-evals` | 🟡 live eval run |
 | 13 Hardening & demo | `phase-13-hardening` | 🟡 Docker build untested |
+| Audit & hardening (PR #13) | `feat/audit-hardening` | 🟡 live provider failures unchecked; open items in [AUDIT.md](AUDIT.md) |
 
 ---
 
@@ -47,7 +51,8 @@ Status legend: ✅ done and verified · 🟡 done, one part waits on something o
 - Fuzzy SKU matcher (`matched / ambiguous / none`); validator for quantity, MOQ, required specs and
   options; **sqft/rft quantity computed in code from dimensions**; clarification questions built from
   the validation result.
-- Gemini 3.5 Flash-Lite chosen as the default (D-020, *Proposed*); `.env` keys load into the environment.
+- Gemini 3.5 Flash-Lite chosen as the default (D-020, *Proposed*); provider keys in `.env` (such as
+  `GOOGLE_API_KEY`) load into the environment.
 - **Pending:** live golden test (`pytest -m llm`) and confirming the model.
 - **Decisions:** D-003, D-004, D-014, D-019, D-020.
 
@@ -80,7 +85,12 @@ Status legend: ✅ done and verified · 🟡 done, one part waits on something o
 - **Tests:** the full HTTP flow end to end.
 
 ## Phase 08: Customer Hub (frontend)
-- Next.js 16 + React 19.2 + Tailwind v4 (upgraded from 15.5 to clear security advisories; 0 npm audit findings).
+- Next.js 16 + React 19.2 + Tailwind v4 (upgraded from 15.5 to clear security advisories; `npm audit`
+  reported 0 findings at the time).
+- **`npm audit` on 2026-11-11:** 8 moderate findings, all from one `minimatch` advisory
+  (GHSA-g3hv-75wg-m249) that reaches the ESLint toolchain. AUD-16 in [AUDIT.md](AUDIT.md) recorded 16
+  on 2026-11-04 for the same lockfile. `npm audit --omit=dev` reports 0, so none are in the runtime
+  dependencies.
 - Demo customers, scenario presets served by the backend, polled chat, status chips, PDF cards.
 - **Offline demo brain** (`KP_LLM_MODEL=demo`) so everything runs without a key.
 - **Verified in the browser.** **Decisions:** D-022, D-023.
@@ -118,3 +128,28 @@ Status legend: ✅ done and verified · 🟡 done, one part waits on something o
 - Seed script for every quote state; catch-all 500 envelope; line-ending normalisation.
 - README, [demo script](demo-script.md), [pitch notes](pitch.md).
 - **Pending:** first Docker build (Docker isn't installed on the dev machine).
+
+## Audit & hardening (GitHub PR #13) 🟡
+Not a numbered phase: a repository audit ([AUDIT.md](AUDIT.md), 2026-11-04) and the fixes made from it.
+- **Owner sign-in** ([D-025](decisions.md#d-025)): `POST /api/auth/login` checks `KP_OWNER_PASSWORD` and sets a
+  signed, HttpOnly session cookie. The inbox, catalog, quote detail and decisions, and draft PDFs need it;
+  final PDFs stay open to the customer after approval. Business Ops shows an "Owner sign in" form.
+- **LLM calls:** one overall timeout (`KP_LLM_TIMEOUT_SECONDS`, default 30) and up to 3 attempts with
+  backoff for transient failures. A failure returns `503 llm_unavailable` instead of a generic 500.
+- **Chat rate limit** ([D-026](decisions.md#d-026)): `POST /api/chat/send` and `/api/chat/send-audio` are limited per
+  client IP (default 30 a minute, `KP_CHAT_RATE_LIMIT_PER_MINUTE`); over the limit gives `429 rate_limited`.
+  The counter is in memory, so it only works with one process.
+- **`GET /ready`:** checks the records DB, the checkpointer and the scheduler (200, or 503 if one is down).
+  The records DB also gets a SQLite busy timeout, and startup warns if `WEB_CONCURRENCY` or
+  `UVICORN_WORKERS` asks for more than one worker.
+- **Serialized work:** customer messages, owner decisions and follow-up sends take the same
+  per-conversation lock. Dispatch saves the sent status, final PDF path, audit events and chat message in
+  one transaction, and a repeated dispatch does nothing.
+- **Frontend:** polling runs one request at a time, pauses while the tab is hidden and backs off on errors;
+  load errors are shown; the voice recorder has a Cancel button; `/` is now a landing page where you
+  choose Customer Hub or Business Ops.
+- **Config:** `.env.example` files for backend and frontend. With `KP_ENVIRONMENT=production` the backend
+  refuses to start with a short owner password, wildcard CORS or non-Secure cookies.
+- **Still open:** see [AUDIT.md](AUDIT.md) (for example multi-process safety, migrations, a Unicode PDF
+  font, browser tests, dependency advisories). Live provider failure modes and the Docker build still
+  need checking.
