@@ -5,6 +5,7 @@ import pytest
 
 from app.config import get_settings
 from app.llm.functions import extract
+from app.llm.provider import get_model
 from app.services.catalog import load_catalog
 from app.services.validator import validate
 from tests.golden import load_golden
@@ -15,6 +16,16 @@ pytestmark = [
 ]
 
 CATALOG = load_catalog()
+
+
+@pytest.fixture(autouse=True)
+def _fresh_model():
+    # Each async test gets its own event loop; a cached client from a previous test is bound to a
+    # closed loop and fails with "Event loop is closed". The app runs on one loop, so only tests
+    # need this.
+    get_model.cache_clear()
+    yield
+    get_model.cache_clear()
 
 
 @pytest.mark.parametrize("case", load_golden(), ids=lambda c: c["id"])
