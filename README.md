@@ -74,7 +74,7 @@ Then run the live checks: `pytest -m llm` (golden inquiries) and
 | Follow-ups | Persistent 48h follow-up jobs, sent at most once, cancelled on reply; "YES" confirms the order. |
 | Owner access | Business APIs and draft PDFs require a signed, HttpOnly owner session. Final quote PDFs are available after approval. |
 | Frontend | Next.js 16 + Tailwind: Customer Hub (demo customers, presets, chat, mic) and Business Ops (inbox, three-panel inspector, edit drawer, PDF viewer). |
-| Quality | 418 tests, 84-case eval set, CI (ruff, pytest, eval gate, frontend lint + build), CodeRabbit config. |
+| Quality | Offline pytest suite (`pytest -q` in `backend/`, no API key needed), 84-case eval set, CI (ruff, pytest, eval gate, frontend lint + build), CodeRabbit config. |
 
 ## Eval results
 
@@ -93,7 +93,7 @@ Live LLM numbers (Gemini 3.5 Flash-Lite) will be added after the first `--mode l
 ## Docs
 
 - [Project spec](docs/project.md): architecture, data model, API, phase index, dev workflow
-- [Decision log](docs/decisions.md): 24 decisions with why/why-not
+- [Decision log](docs/decisions.md): every design decision with why/why-not
 - [Phases](docs/phases/): `phase-01.md` … `phase-13.md`, each with a changelog of what was built
 - [Implementation summary](docs/IMPLEMENTATION-SUMMARY.md) · [Owner to-do](docs/YOUR-TODO.md)
 - [Demo script](docs/demo-script.md) · [Pitch notes](docs/pitch.md) · [OpenAPI](docs/openapi.json)

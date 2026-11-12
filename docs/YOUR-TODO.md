@@ -5,34 +5,19 @@ what's left for **you**, in the order I'd do it. Each item says why it matters a
 
 ---
 
-## 1. Get the code onto `main` (do this first)
+## 1. ✅ Get the code onto `main` (done)
 
-Each phase is on its own branch, and **each branch is built on top of the previous one**:
+Phases 01 and 02 were committed to `main` directly. Phases 03 to 13 (PRs #2 to #12), the audit and
+hardening pass (PR #13) and the follow-up fixes (PR #14) are merged into it. Only housekeeping on
+GitHub is left:
 
-```
-main ← phase-03-extraction ← phase-04-graph ← phase-05-hitl ← phase-06-pdf ← phase-07-api
-     ← phase-08-customer-hub ← phase-09-ops-console ← phase-10-guardrails-voice
-     ← phase-11-dispatch ← phase-12-evals ← phase-13-hardening
-```
+- Merge or close `docs/coderabbit-manual-trigger`. It is the only branch not in `main`.
+- Delete the branches that are already merged (their commits are all in `main`): `chore/readme-status`,
+  the phase branches (`phase-03-extraction` to `phase-13-hardening`), `feat/audit-hardening` and
+  `fix/duplicate-approval-and-env-leak`.
 
-Plus one small, independent branch: `docs/coderabbit-manual-trigger`.
-
-**Option A (recommended, reviewed by CodeRabbit phase by phase):**
-1. Open a PR from `phase-03-extraction` into `main`:
-   https://github.com/JustinSantosh/Kaam_Pilot/compare/main...phase-03-extraction
-2. Comment `@coderabbitai review` (reviews are manual on repos under 10 stars).
-3. Merge it with **"Create a merge commit"**. Don't use squash or rebase: they rewrite commits, and the
-   next branches would then show conflicts.
-4. Repeat for `phase-04-graph`, `phase-05-hitl`, … `phase-13-hardening`, in order. Each PR now shows
-   only that phase's changes.
-
-**Option B (fastest):** one PR from `phase-13-hardening` into `main` contains everything.
-
-Also merge or close `docs/coderabbit-manual-trigger`, and delete the already-merged
-`chore/readme-status` branch on GitHub.
-
-✅ *Check:* the **CI** workflow (GitHub → Actions) passes on the PR. It runs lint, 418 tests, the eval
-gate and the frontend build. It has passed locally, but this will be its first run on GitHub.
+✅ *Check:* **Actions → CI** on GitHub is green for `main`. It runs lint, the offline tests, the eval
+gate, and the frontend lint, type-check and build.
 
 ---
 
@@ -117,8 +102,11 @@ cd backend && .venv/Scripts/python -m evals.build_dataset
 
 ## 6. Before anyone outside can use it
 
-- The Business Ops console has **no login**. Don't deploy it on a public URL as-is; adding auth is the
-  first production task.
+- Business Ops asks for the owner password ([D-025](decisions.md#d-025)), so `KP_OWNER_PASSWORD` must be
+  set in `backend/.env`. Without it nobody can sign in and the Ops console is unusable. It is one shared
+  password, not per-user accounts. If you deploy, also set `KP_ENVIRONMENT=production`: the backend then
+  refuses to start unless the password is at least 16 characters, `KP_CORS_ORIGINS` has no `*`, and
+  `KP_OWNER_COOKIE_SECURE=true` (serve the site over HTTPS).
 - Set `KP_CORS_ORIGINS` (backend) and `NEXT_PUBLIC_API_URL` (frontend build) to your real domains if you deploy.
 - Keep `uvicorn --workers 1` (one follow-up scheduler per process, D-013).
 

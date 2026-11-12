@@ -17,8 +17,8 @@ audio upload endpoint, mic recording in Customer Hub, adversarial test set.
 backend/app/services/guardrail.py     # rule checks + classify_risk()
 backend/app/llm/prompts/guardrail_v1.md
 backend/app/agent/nodes/guardrail.py
-backend/app/agent/nodes/transcribe.py
-backend/app/services/transcribe.py    # Whisper (or compatible) wrapper
+backend/app/llm/functions.py          # transcribe(): the configured model + an audio block (D-024)
+backend/app/llm/prompts/transcribe_v1.md
 backend/app/api/routes_chat.py        # + POST /api/chat/send-audio (multipart)
 frontend/src/components/VoiceRecorder.tsx
 backend/tests/test_guardrail.py
@@ -49,7 +49,7 @@ backend/tests/adversarial/cases.json
 - A recorded Hinglish voice note produces a correct quote in the demo.
 
 ## Risks / open questions
-- Whisper quality on noisy shop-floor audio: keep the transcript editable by the owner in a later iteration.
+- Transcription quality on noisy shop-floor audio: keep the transcript editable by the owner in a later iteration.
 
 ## Notes / changelog
 - 2026-10-31: phase file created.
@@ -68,3 +68,6 @@ backend/tests/adversarial/cases.json
   - Verified in the browser: the injection preset gets the refusal and no quote is created.
   - Not verified: real Gemini audio transcription (needs the API key).
   - Tests: 398 offline (32 new).
+- 2026-11-11: docs corrected. The Deliverables list above named a Whisper wrapper and a `transcribe`
+  graph node. As D-024 decided, transcription is `transcribe()` in `llm/functions.py` (the configured
+  model), called from the audio route before the graph; there is no separate speech service or node.

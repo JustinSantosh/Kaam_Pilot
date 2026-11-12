@@ -142,7 +142,7 @@ Key differences from the original draft (each recorded as a decision):
 | API | FastAPI, Python 3.11+ | async endpoints, `ainvoke` |
 | Schemas | Pydantic v2 | separate LLM vs priced schemas ([D-003](decisions.md#d-003)) |
 | LLM | provider-agnostic via `init_chat_model` | model chosen by config ([D-014](decisions.md#d-014)) |
-| Speech-to-text | OpenAI Whisper API (or compatible) | Phase 10 |
+| Speech-to-text | The configured model itself (Gemini accepts audio directly); no separate speech service | [D-024](decisions.md#d-024) |
 | Pricing | Pure Python + `catalog.json`, `Decimal` | [D-005](decisions.md#d-005), [D-006](decisions.md#d-006) |
 | PDF | Jinja2 + xhtml2pdf | Pure-Python HTML renderer; selected by [D-021](decisions.md#d-021), superseding D-012. |
 | Scheduling | APScheduler + SQLAlchemy job store | [D-013](decisions.md#d-013) |
@@ -213,7 +213,7 @@ class PricedQuote(BaseModel):
 | `quote_id` | str \| None | `price` (creates the quote row) |
 | `customer` | `{name, phone, state}` | API |
 | `messages` | `Annotated[list, add_messages]` | API / draft nodes |
-| `raw_query` | str | API / `transcribe` |
+| `raw_query` | str | API (voice notes are transcribed before the graph, D-024) |
 | `guardrail` | `{flagged: bool, reason}` | `guardrail` |
 | `intent` | `new_quote \| cancel \| other` | `intent` |
 | `extraction` | `Extraction` | `extract` |
@@ -306,7 +306,12 @@ quote detail/decisions, and draft PDFs require this session.
 Every error is `{"error": {"code", "message", "details"}}`: `validation_error` (422),
 `not_found` (404), `quote_not_pending` / `stale_revision` (409), `unauthorized` (401),
 `rate_limited` (429), `llm_not_configured` / `llm_unavailable` (503).
-The full schema is in [openapi.json](openapi.json), generated from the app.
+The full schema is in [openapi.json](openapi.json), generated from the app. After you add or change a
+route, regenerate it from `backend/` (the file is indented by one space and has no trailing newline):
+
+```bash
+python -c "import json; from app.main import app; open('../docs/openapi.json','w',newline='\n').write(json.dumps(app.openapi(), indent=1))"
+```
 
 ---
 
@@ -332,7 +337,8 @@ kaampilot/
 │   │   │   ├── pricing.py           # PricedLineItem, QuoteTotals
 │   │   │   └── api.py               # request/response models
 │   │   ├── llm/
-│   │   │   ├── provider.py          # init_chat_model wrapper
+│   │   │   ├── provider.py          # init_chat_model wrapper, timeout + retries
+│   │   │   ├── functions.py         # intent, extraction, risk check, voice transcription (D-024)
 │   │   │   └── prompts/             # versioned prompt files
 │   │   ├── services/
 │   │   │   ├── catalog.py           # load + validate catalog.json
@@ -342,7 +348,6 @@ kaampilot/
 │   │   │   ├── money.py             # paise rounding + ₹ display
 │   │   │   ├── pricing.py           # deterministic math
 │   │   │   ├── pdf.py               # template → PDF
-│   │   │   ├── transcribe.py        # Whisper
 │   │   │   └── scheduler.py         # APScheduler
 │   │   ├── db/
 │   │   │   ├── models.py            # SQLAlchemy tables
