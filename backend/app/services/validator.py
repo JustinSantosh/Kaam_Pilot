@@ -79,7 +79,24 @@ def _clean_specs(raw: dict[str, str], item: CatalogItem | None) -> dict[str, str
         if item is not None and key in item.spec_surcharges:
             val = normalize_option(val)
         specs[key] = val
-    return specs
+    return _rehome_options(specs, item) if item is not None else specs
+
+
+def _rehome_options(specs: dict[str, str], item: CatalogItem) -> dict[str, str]:
+    """Move a known option filed under a name the item doesn't use ("logo": "embroidery") to the
+    one spec that offers it ("print_type"), if that spec is still empty. Ambiguous words stay
+    put."""
+    known = set(item.required_specs) | set(item.spec_surcharges)
+    out = dict(specs)
+    for key, val in specs.items():
+        if key in known:
+            continue
+        option = normalize_option(val)
+        owners = [s for s, opts in item.spec_surcharges.items() if option in opts]
+        if len(owners) == 1 and owners[0] not in out:
+            out[owners[0]] = option
+            del out[key]
+    return out
 
 
 _NUMBER = re.compile(r"\d+(?:\.\d+)?")

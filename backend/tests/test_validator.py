@@ -66,6 +66,25 @@ def test_spec_names_and_options_are_normalized() -> None:
     assert result.items[0].specs["finish"] == "powder_coat"
 
 
+def test_option_under_unknown_name_is_rehomed() -> None:
+    # Live Gemini returned "logo": "embroidery" for "embroidered logo on chest".
+    result = one("black tee", 50, size_mix="M:50", logo="Embroidery", placement="front")
+    assert result.complete
+    assert result.items[0].specs["print_type"] == "embroidery"
+    assert "logo" not in result.items[0].specs
+
+
+def test_rehome_never_overwrites_a_stated_spec() -> None:
+    result = one("black tee", 50, **TEE_SPECS, logo="embroidery")
+    assert result.items[0].specs["print_type"] == "screen"
+    assert result.items[0].specs["logo"] == "embroidery"
+
+
+def test_unrelated_unknown_spec_is_left_alone() -> None:
+    result = one("black tee", 50, **TEE_SPECS, colour="black")
+    assert result.items[0].specs["colour"] == "black"
+
+
 def test_invalid_option() -> None:
     result = one("black tee", 50, size_mix="M:50", print_type="vinyl", placement="front")
     assert codes(result) == [("invalid_option", "print_type")]
