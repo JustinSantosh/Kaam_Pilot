@@ -1,31 +1,40 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Bricolage_Grotesque, Figtree } from "next/font/google";
+import Link from "next/link";
+import { LogoMark, Wordmark } from "@/components/Logo";
 import { NavLinks } from "@/components/NavLinks";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+// Brand type (D-027): Bricolage Grotesque for headlines and big numbers, Figtree for everything else.
+const display = Bricolage_Grotesque({
+  subsets: ["latin"],
+  variable: "--font-bricolage",
+  axes: ["opsz"],
+});
+const text = Figtree({ subsets: ["latin"], variable: "--font-figtree" });
 
 export const metadata: Metadata = {
   title: "KaamPilot",
-  description: "Human-in-the-loop quotations for trade businesses",
+  description: "Message in. Quote out. You approve. Quotations for trade businesses.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.variable} font-sans antialiased`}>
-        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
-          <div className="mx-auto flex h-14 max-w-7xl items-center gap-6 px-4">
-            <span className="text-lg font-semibold text-brand-700">
-              Kaam<span className="text-brand-500">Pilot</span>
-            </span>
+    <html lang="en" className={`${display.variable} ${text.variable}`}>
+      <body className="bg-mist font-sans text-ink antialiased">
+        <header className="sticky top-0 z-20 border-b-2 border-ink bg-white">
+          <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5 sm:px-8">
+            <Link href="/" aria-label="KaamPilot home" className="flex items-center gap-2.5 rounded-xl">
+              <LogoMark size={36} />
+              <Wordmark className="text-[26px]" />
+            </Link>
             <NavLinks />
-            <span className="ml-auto hidden text-xs text-slate-500 sm:block">
-              The LLM reads · Code calculates · The owner approves
-            </span>
+            <p className="ml-auto hidden text-sm font-bold text-ink-500 lg:block">
+              AI padhta hai · Code ginta hai · Aap approve karte hain
+            </p>
           </div>
         </header>
-        <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
+        {children}
       </body>
     </html>
   );

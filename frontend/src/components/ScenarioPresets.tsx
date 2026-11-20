@@ -12,29 +12,31 @@ export function ScenarioPresets({
   onSend: (message: string) => void;
 }) {
   if (!scenarios.length) {
-    return <p className="text-xs text-slate-500">Presets load from the backend.</p>;
+    return <p className="text-[13px] font-semibold text-ink-500">Presets load from the backend.</p>;
   }
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col gap-2">
       {scenarios.map((s) => (
-        <div key={s.id} className="rounded-md border border-slate-200 bg-white p-2">
+        <div key={s.id} className="flex flex-col gap-1.5">
           <button
+            type="button"
             disabled={disabled}
             onClick={() => onSend(s.message)}
-            className="w-full text-left disabled:opacity-50"
             title={s.message}
+            className="flex w-full flex-col gap-0.5 rounded-[14px] border-[1.5px] border-line bg-mist px-3 py-2.5 text-left transition-colors hover:border-ink hover:bg-white disabled:opacity-55"
           >
-            <div className="text-sm font-medium text-slate-800">{s.label}</div>
-            <div className="line-clamp-2 text-xs text-slate-500">{s.message}</div>
+            <span className="text-[15px] font-extrabold">{s.label}</span>
+            <span className="w-full truncate text-[13px] leading-snug text-ink-700">{s.message}</span>
           </button>
           {s.follow_up && (
             <button
+              type="button"
               disabled={disabled}
               onClick={() => onSend(s.follow_up!)}
-              className="mt-1.5 w-full rounded bg-slate-50 px-2 py-1 text-left text-xs text-brand-600 hover:bg-brand-50 disabled:opacity-50"
               title={s.follow_up}
+              className="ml-3.5 flex min-h-11 items-center rounded-xl bg-peacock-soft px-3 text-left text-[13px] font-extrabold text-peacock-700 transition-colors hover:bg-[#c4efeb] disabled:opacity-55"
             >
-              ↳ Send follow-up: {s.follow_up}
+              <span className="min-w-0 truncate">↳ Send follow-up: {s.follow_up}</span>
             </button>
           )}
         </div>

@@ -66,6 +66,7 @@ way it does, what it costs, and why the obvious alternatives were rejected.
 | [D-024](#d-024) | Voice: transcribe with the configured model, before the graph | Accepted | 10 |
 | [D-025](#d-025) | Owner access: signed HttpOnly session cookie | Accepted | 13 |
 | [D-026](#d-026) | Chat abuse control: process-local fixed-window limit | Accepted | 13 |
+| [D-027](#d-027) | Brand: "Bazaar Pop" | Accepted | 06, 08, 09 |
 
 ---
 
@@ -532,3 +533,27 @@ way it does, what it costs, and why the obvious alternatives were rejected.
 - **Why not:**
   - *Redis-backed limiting now*: adds infrastructure to the current single-process MVP.
   - *No limit*: permits unbounded provider calls and upload bursts.
+
+<a id="d-027"></a>
+## D-027: Brand: "Bazaar Pop"
+- **Date:** 2026-11-20 · **Status:** Accepted · **Phase:** [06](phases/phase-06.md), [08](phases/phase-08.md), [09](phases/phase-09.md)
+- **Context:** The first UI used a quiet corporate blue with Inter. KaamPilot's users are small trade
+  businesses and customers who chat in Hinglish and send voice notes; the look didn't match that voice.
+- **Decision:** A fun, vibrant identity. Marigold and rani (hot pink) on a pale lavender "mist" ground,
+  aubergine ink for text, ink outlines and hard "sticker" shadows on things you can press, and a
+  bandhani-dot texture. Bricolage Grotesque for headlines and big numbers, Figtree for everything else
+  (Google Fonts through `next/font`). The mark is a chat bubble sending a paper plane: message in,
+  quote out. Interface copy may use Hinglish ("Bolo, kya banwana hai?", "Sab sahi?"); money, tax and
+  error text stay plain English. Tokens live in `frontend/src/app/globals.css`, the mark in
+  `frontend/src/components/Logo.tsx`.
+- **Why it matters:** The product promise is warm at the counter and exact with money. A loud palette
+  is only acceptable if it stays readable, so every text/background pair used passes WCAG AA (white on
+  rani 5.3:1, ink on marigold 10:1, captions in ink-500 5.7:1).
+- **Effects:** Status chips have role-specific labels: the owner sees "Needs your OK", the customer
+  sees "Owner is checking". The quotation PDF uses the same colours but keeps Helvetica and "Rs.":
+  xhtml2pdf can't use the brand fonts without vendored font files and has no ₹ glyph (D-021). Buttons
+  are at least 44px tall.
+- **Why not:**
+  - *Keep the corporate blue*: clear but forgettable, and at odds with a chat-first, Hinglish product.
+  - *Stock shadcn/ui theme*: quick, but looks like every other dashboard.
+  - *Embed the brand fonts in the PDF now*: needs font files in the repo; possible later.

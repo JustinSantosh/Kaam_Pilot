@@ -3,56 +3,67 @@
 <head>
 <meta charset="utf-8">
 <style>
-  @page { size: A4; margin: 16mm 14mm 18mm 14mm;
+  /* Brand: Bazaar Pop (D-027). xhtml2pdf supports tables, colours and borders, not flexbox or rounded corners. */
+  @page { size: A4; margin: 14mm 14mm 18mm 14mm;
           @frame footer { -pdf-frame-content: footer; bottom: 8mm; margin-left: 14mm; margin-right: 14mm; height: 10mm; } }
-  body { font-family: Helvetica; font-size: 9pt; color: #1f2933; }
-  h1 { font-size: 16pt; margin: 0; color: #0b3d5c; }
-  .muted { color: #5f6b76; }
-  .title { font-size: 13pt; font-weight: bold; color: #0b3d5c; text-align: right; }
-  .draft { color: #b42318; font-weight: bold; font-size: 10pt; text-align: right; }
+  body { font-family: Helvetica; font-size: 9pt; color: #1e1240; }
+  h1 { font-size: 17pt; margin: 0; color: #1e1240; }
   table { width: 100%; }
-  .head td { vertical-align: top; }
-  .box td { padding: 4px 6px; }
-  .lines th { background-color: #0b3d5c; color: #ffffff; padding: 5px 4px; font-size: 8pt; text-align: left; }
-  .lines td { padding: 5px 4px; border-bottom: 0.5px solid #d4dae0; vertical-align: top; }
+  /* Coloured bars are single cells with a layout table inside, so no seam shows between cells. */
+  .band-cell { background-color: #ffb81c; padding: 10px 12px; border-bottom: 2px solid #1e1240; }
+  .band-cell td { vertical-align: top; }
+  .title { font-size: 22pt; font-weight: bold; text-align: right; color: #1e1240; }
+  .draft { color: #d1106a; font-weight: bold; font-size: 10pt; text-align: right; }
+  .meta td { border: 1px solid #1e1240; padding: 5px 8px; vertical-align: top; }
+  .label { font-size: 7pt; font-weight: bold; color: #6b6185; }
+  .muted { color: #4a3f66; }
+  .lines th { background-color: #1e1240; color: #ffffff; padding: 6px 5px; font-size: 7.5pt; text-align: left; }
+  .lines td { padding: 6px 5px; border-bottom: 1px solid #e6dff5; vertical-align: top; }
   .num, .lines th.num { text-align: right; }
-  .specs { font-size: 7.5pt; color: #5f6b76; }
-  .totals td { padding: 3px 4px; }
-  .grand td { font-size: 11pt; font-weight: bold; border-top: 1px solid #0b3d5c; padding-top: 5px; }
-  .words { margin-top: 6px; font-style: italic; }
+  .specs { font-size: 7.5pt; color: #4a3f66; }
+  .totals td { padding: 3px 6px; }
+  .grand { font-size: 12pt; font-weight: bold; background-color: #ffb81c; border-top: 2px solid #1e1240; border-bottom: 2px solid #1e1240; padding: 6px; }
+  .words { margin-top: 8px; font-style: italic; color: #4a3f66; }
+  .flags { margin-top: 8px; color: #a8231a; font-size: 8pt; }
   .terms { margin-top: 14px; font-size: 8pt; }
-  .flags { margin-top: 8px; color: #b42318; font-size: 8pt; }
 </style>
 </head>
 <body>
-<table class="head">
+<table cellspacing="0" cellpadding="0">
+  <tr><td class="band-cell">
+    <table cellspacing="0" cellpadding="0">
+      <tr>
+        <td width="60%">
+          <h1>{{ business.name }}</h1>
+          {% if business.address %}<div>{{ business.address }}</div>{% endif %}
+          {% if business.phone %}<div>Phone: {{ business.phone }}</div>{% endif %}
+          {% if business.gstin %}<div>GSTIN: {{ business.gstin }}</div>{% endif %}
+        </td>
+        <td width="40%">
+          <div class="title">QUOTATION</div>
+          {% if draft %}<div class="draft">DRAFT - not valid until approved</div>{% endif %}
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+</table>
+
+<table class="meta" style="margin-top: 10px;">
   <tr>
-    <td width="60%">
-      <h1>{{ business.name }}</h1>
-      {% if business.address %}<div class="muted">{{ business.address }}</div>{% endif %}
-      {% if business.phone %}<div class="muted">Phone: {{ business.phone }}</div>{% endif %}
-      {% if business.gstin %}<div class="muted">GSTIN: {{ business.gstin }}</div>{% endif %}
-    </td>
-    <td width="40%">
-      <div class="title">QUOTATION</div>
-      {% if draft %}<div class="draft">DRAFT - not valid until approved</div>{% endif %}
-      <table class="box">
-        <tr><td class="muted">Quote no.</td><td class="num">{{ quote.number }} / R{{ quote.revision }}</td></tr>
-        <tr><td class="muted">Date</td><td class="num">{{ issued }}</td></tr>
-        <tr><td class="muted">Valid until</td><td class="num">{{ valid_until }}</td></tr>
-      </table>
-    </td>
+    <td width="34%"><span class="label">QUOTE NO.</span><br><b>{{ quote.number }}</b> / R{{ quote.revision }}</td>
+    <td width="33%"><span class="label">DATE</span><br><b>{{ issued }}</b></td>
+    <td width="33%"><span class="label">VALID UNTIL</span><br><b>{{ valid_until }}</b></td>
   </tr>
 </table>
 
-<table class="box" style="margin-top: 10px;">
+<table class="meta" style="margin-top: 6px;">
   <tr>
-    <td width="60%"><b>Quotation for</b><br>{{ customer.name or "Customer" }}{% if customer.phone %}<br>{{ customer.phone }}{% endif %}</td>
-    <td width="40%"><b>Place of supply</b><br>{{ place_of_supply }}</td>
+    <td width="67%"><span class="label">QUOTATION FOR</span><br><b>{{ customer.name or "Customer" }}</b>{% if customer.phone %}<br><span class="muted">{{ customer.phone }}</span>{% endif %}</td>
+    <td width="33%"><span class="label">PLACE OF SUPPLY</span><br><b>{{ place_of_supply }}</b></td>
   </tr>
 </table>
 
-<table class="lines" style="margin-top: 10px;">
+<table class="lines" style="margin-top: 12px;">
   <tr>
     <th width="4%">#</th><th width="36%">Item</th><th width="8%">HSN</th>
     <th width="10%" class="num">Qty</th><th width="13%" class="num">Rate</th>
@@ -61,22 +72,22 @@
   {% for line in items %}
   <tr>
     <td>{{ loop.index }}</td>
-    <td>{{ line.name }}{% if line.specs %}<div class="specs">{% for k, v in line.specs.items() %}{{ k | replace("_", " ") }}: {{ v }}{% if not loop.last %}; {% endif %}{% endfor %}</div>{% endif %}</td>
+    <td><b>{{ line.name }}</b>{% if line.specs %}<div class="specs">{% for k, v in line.specs.items() %}{{ k | replace("_", " ") }}: {{ v }}{% if not loop.last %}; {% endif %}{% endfor %}</div>{% endif %}</td>
     <td>{{ line.hsn }}</td>
     <td class="num">{{ line.quantity }} {{ line.unit }}</td>
     <td class="num">{{ line.unit_price_paise | money }}</td>
     <td class="num">{{ line.setup_fee_paise | money }}</td>
-    <td class="num">{{ line.line_subtotal_paise | money }}</td>
+    <td class="num"><b>{{ line.line_subtotal_paise | money }}</b></td>
   </tr>
   {% endfor %}
 </table>
 
 <table class="totals" style="margin-top: 8px;">
-  <tr><td width="65%"></td><td width="18%">Subtotal</td><td width="17%" class="num">{{ quote.subtotal_paise | money }}</td></tr>
-  {% if quote.discount_paise %}<tr><td></td><td>Discount</td><td class="num">- {{ quote.discount_paise | money }}</td></tr>
-  <tr><td></td><td>Taxable value</td><td class="num">{{ quote.taxable_paise | money }}</td></tr>{% endif %}
-  {% for row in tax_rows %}<tr><td></td><td>{{ row.label }}</td><td class="num">{{ row.amount | money }}</td></tr>{% endfor %}
-  <tr class="grand"><td></td><td>Total</td><td class="num">{{ quote.total_paise | money }}</td></tr>
+  <tr><td width="60%"></td><td width="21%" class="muted">Subtotal</td><td width="19%" class="num">{{ quote.subtotal_paise | money }}</td></tr>
+  {% if quote.discount_paise %}<tr><td></td><td class="muted">Discount</td><td class="num">- {{ quote.discount_paise | money }}</td></tr>
+  <tr><td></td><td class="muted">Taxable value</td><td class="num">{{ quote.taxable_paise | money }}</td></tr>{% endif %}
+  {% for row in tax_rows %}<tr><td></td><td class="muted">{{ row.label }}</td><td class="num">{{ row.amount | money }}</td></tr>{% endfor %}
+  <tr><td></td><td colspan="2" class="grand"><table cellspacing="0" cellpadding="0"><tr><td>Total</td><td class="num">{{ quote.total_paise | money }}</td></tr></table></td></tr>
 </table>
 <div class="words">{{ total_words }}</div>
 
@@ -90,6 +101,6 @@
   4. Taxes as applicable at the time of invoicing.
 </div>
 
-<div id="footer" class="muted" style="font-size: 7pt;">{{ business.name }} - {{ quote.number }} R{{ quote.revision }} - generated by KaamPilot</div>
+<div id="footer" class="muted" style="font-size: 7pt;">{{ business.name }} · {{ quote.number }} R{{ quote.revision }} · {% if draft %}awaiting the owner's approval{% else %}checked and approved by the owner{% endif %} · prepared with KaamPilot</div>
 </body>
 </html>

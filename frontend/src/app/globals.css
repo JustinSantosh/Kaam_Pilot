@@ -1,16 +1,66 @@
 @import "tailwindcss";
 
+/* Brand: Bazaar Pop (D-027). Every text pairing used in the app passes WCAG AA. */
 @theme {
-  --color-brand-50: #eef6fa;
-  --color-brand-100: #d5e8f1;
-  --color-brand-500: #1d6d96;
-  --color-brand-600: #155a7d;
-  --color-brand-700: #0b3d5c;
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --color-ink: #1e1240; /* text, outlines, hard shadows: 17:1 on white */
+  --color-ink-700: #4a3f66; /* secondary text: 9.6:1 */
+  --color-ink-500: #6b6185; /* captions: 5.7:1 */
+  --color-mist: #f7f4fc; /* app background */
+  --color-line: #e6dff5; /* quiet borders and dividers */
+  --color-closed: #edeaf3;
+
+  --color-marigold: #ffb81c; /* highlights, "needs your OK" */
+  --color-marigold-soft: #ffedc2;
+  --color-rani: #d1106a; /* primary actions, links: white text 5.3:1 */
+  --color-rani-700: #b30d5b;
+  --color-rani-pop: #ff4d94; /* stickers and decoration, ink text only */
+  --color-rani-soft: #ffe3ef;
+  --color-peacock: #0a7c78; /* what the AI understood, voice notes */
+  --color-peacock-700: #08625f;
+  --color-peacock-pop: #19c2b5;
+  --color-peacock-soft: #d7f6f3;
+  --color-leaf: #0f7f4a; /* sent, accepted, done */
+  --color-leaf-700: #0b6b3e;
+  --color-leaf-pop: #2bc47a;
+  --color-leaf-soft: #ddf7e8;
+  --color-chilli: #a8231a; /* reject and errors */
+  --color-chilli-soft: #ffe1dc;
+  --color-iris: #4b32b5; /* follow-ups */
+  --color-iris-soft: #ece6ff;
+
+  --font-sans: var(--font-figtree), "Segoe UI", system-ui, sans-serif;
+  --font-display: var(--font-bricolage), "Trebuchet MS", system-ui, sans-serif;
+
+  --shadow-pop-sm: 3px 3px 0 var(--color-ink);
+  --shadow-pop: 4px 4px 0 var(--color-ink);
+  --shadow-pop-lg: 6px 6px 0 var(--color-ink);
 }
 
-html,
-body {
-  background: #f6f8fa;
-  color: #1f2933;
+/* Bandhani dots: the brand's background texture. */
+@utility bg-dots {
+  background-image: radial-gradient(rgb(30 18 64 / 0.16) 1.6px, transparent 1.9px);
+  background-size: 22px 22px;
+}
+
+@utility bg-dots-faint {
+  background-image: radial-gradient(rgb(30 18 64 / 0.07) 1.4px, transparent 1.7px);
+  background-size: 20px 20px;
+}
+
+@layer base {
+  html,
+  body {
+    background: var(--color-mist);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+
+  ::placeholder {
+    color: var(--color-ink-500);
+    opacity: 1;
+  }
 }

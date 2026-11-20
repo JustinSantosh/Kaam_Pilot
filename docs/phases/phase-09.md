@@ -2,7 +2,7 @@
 
 - **Status:** Done
 - **Depends on:** [08](phase-08.md)
-- **Decisions:** [D-009](../decisions.md#d-009), [D-016](../decisions.md#d-016)
+- **Decisions:** [D-009](../decisions.md#d-009), [D-016](../decisions.md#d-016), [D-027](../decisions.md#d-027)
 
 ## Goal
 The owner's workbench: see pending quotes, inspect exactly what the AI understood next to what the
@@ -61,3 +61,7 @@ Actions: **Approve & send** · **Edit** · **Reject (reason)**.
   - Approve dialog shows the final total; reject requires a reason; PDF opens in a modal iframe.
   - Verified in the browser: edit 100→150 pcs + 5% discount gave revision 2 at ₹30,423.76 (checked
     by hand), then approve; the Customer Hub shows "Your quote KP-2026-0001 is ready." Lint, tsc and build pass.
+- 2026-11-20: Business Ops restyled ([D-027](../decisions.md#d-027)): inbox with avatars and a "Needs your OK" filter,
+  inspector header with the total and actions, colour-coded panels, a "Flight log" with readable
+  event names, and the approve dialog "Sab sahi? Send it to Ravi." Checked end to end in the browser
+  against a throwaway backend: Hinglish scenario, clarification, quote, approve, quote card in chat.

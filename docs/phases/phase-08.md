@@ -2,7 +2,7 @@
 
 - **Status:** Done
 - **Depends on:** [07](phase-07.md)
-- **Decisions:** [D-005](../decisions.md#d-005), [D-016](../decisions.md#d-016), [D-022](../decisions.md#d-022), [D-023](../decisions.md#d-023)
+- **Decisions:** [D-005](../decisions.md#d-005), [D-016](../decisions.md#d-016), [D-022](../decisions.md#d-022), [D-023](../decisions.md#d-023), [D-027](../decisions.md#d-027)
 
 ## Goal
 A Next.js app with a Customer Hub that simulates customers messaging the business, including ready-made
@@ -59,3 +59,8 @@ frontend/src/hooks/usePolling.ts
   - `.claude/launch.json` runs `backend-demo` (port 8000) and `frontend` (port 3000).
   - Verified in the browser: preset → quote KP-2026-0001 awaiting approval, reply shown in chat.
     `npm run lint`, `tsc`, `npm run build` pass. Backend tests: 366.
+- 2026-11-20: new brand applied ([D-027](../decisions.md#d-027)): Bricolage Grotesque + Figtree, colour tokens in
+  `globals.css`, logo (`Logo.tsx`) and stroke icons (`icons.tsx`), a new landing page, chat with a
+  quotation card and a voice-note label, and status chips worded for the customer ("Owner is
+  checking"). No API or logic changes. Checked in the browser at desktop and phone widths;
+  lint and tsc pass.
