@@ -5,6 +5,101 @@
   "version": "0.1.0"
  },
  "paths": {
+  "/api/auth/login": {
+   "post": {
+    "tags": [
+     "auth"
+    ],
+    "summary": "Login",
+    "operationId": "login_api_auth_login_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/LoginRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": {
+          "type": "boolean"
+         },
+         "type": "object",
+         "title": "Response Login Api Auth Login Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/auth/session": {
+   "get": {
+    "tags": [
+     "auth"
+    ],
+    "summary": "Session",
+    "operationId": "session_api_auth_session_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": {
+          "type": "boolean"
+         },
+         "type": "object",
+         "title": "Response Session Api Auth Session Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/auth/logout": {
+   "post": {
+    "tags": [
+     "auth"
+    ],
+    "summary": "Logout",
+    "operationId": "logout_api_auth_logout_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": {
+          "type": "boolean"
+         },
+         "type": "object",
+         "title": "Response Logout Api Auth Logout Post"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/chat/send": {
    "post": {
     "tags": [
@@ -39,6 +134,84 @@
        "application/json": {
         "schema": {
          "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/chat/send-audio": {
+   "post": {
+    "tags": [
+     "customer"
+    ],
+    "summary": "Send Audio",
+    "description": "Voice note \u2192 transcript \u2192 the same path as typed text (guardrail, intent, extraction).",
+    "operationId": "send_audio_api_chat_send_audio_post",
+    "requestBody": {
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_send_audio_api_chat_send_audio_post"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ChatSendResponse"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/demo/scenarios": {
+   "get": {
+    "tags": [
+     "customer"
+    ],
+    "summary": "Demo Scenarios",
+    "description": "Preset messages for the Customer Hub's scenario buttons.",
+    "operationId": "demo_scenarios_api_demo_scenarios_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "additionalProperties": {
+           "anyOf": [
+            {
+             "type": "string"
+            },
+            {
+             "type": "null"
+            }
+           ]
+          },
+          "type": "object"
+         },
+         "type": "array",
+         "title": "Response Demo Scenarios Api Demo Scenarios Get"
         }
        }
       }
@@ -332,6 +505,22 @@
      }
     }
    }
+  },
+  "/ready": {
+   "get": {
+    "summary": "Ready",
+    "operationId": "ready_ready_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
@@ -349,6 +538,46 @@
      "action"
     ],
     "title": "Approve"
+   },
+   "Body_send_audio_api_chat_send_audio_post": {
+    "properties": {
+     "conversation_id": {
+      "type": "string",
+      "title": "Conversation Id"
+     },
+     "audio": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "Audio"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "default": ""
+     },
+     "phone": {
+      "type": "string",
+      "title": "Phone",
+      "default": ""
+     },
+     "state": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "State"
+     }
+    },
+    "type": "object",
+    "required": [
+     "conversation_id",
+     "audio"
+    ],
+    "title": "Body_send_audio_api_chat_send_audio_post"
    },
    "CatalogOption": {
     "properties": {
@@ -646,6 +875,21 @@
      "quantity"
     ],
     "title": "ItemEdit"
+   },
+   "LoginRequest": {
+    "properties": {
+     "password": {
+      "type": "string",
+      "maxLength": 1024,
+      "minLength": 1,
+      "title": "Password"
+     }
+    },
+    "type": "object",
+    "required": [
+     "password"
+    ],
+    "title": "LoginRequest"
    },
    "MessageOut": {
     "properties": {

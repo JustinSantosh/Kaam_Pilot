@@ -32,14 +32,16 @@ computed in code ([D-019](decisions.md#d-019)).
   off-topic, 18 adversarial).
 - Deterministic pipeline: **100% end-to-end total match**, 100% clarification exactness, 0% guardrail
   false positives, 100% of rule-blockable attacks refused without an LLM call.
-- **418 automated tests** (pricing, validation, graph paths, human-in-the-loop resume after restart,
-  API, PDFs, guardrails, follow-ups).
+- **Hundreds of automated tests, all offline** (pricing, validation, graph paths, human-in-the-loop
+  resume after restart, API, owner sign-in, PDFs, guardrails, follow-ups). Run `pytest -q` in
+  `backend/` just before you present and quote the number it prints.
 - *Add after the live run:* extraction F1 and total-match % with Gemini 3.5 Flash-Lite, p50 latency,
   cost per quote. These are the numbers interviewers care about most.
 
 ## Honest limitations (say them before you're asked)
 
-- Single business, no authentication on the Ops console (demo scope).
+- Single business. The Ops console sits behind one shared owner password and a signed session cookie
+  ([D-025](decisions.md#d-025)); there are no per-user accounts or roles.
 - In-app chat simulator instead of a real WhatsApp channel (the `Outbound` protocol is the plug-in point).
 - SQLite and one process: fine for one shop, not for multi-tenant scale (Postgres saver is a config change).
 - GST rates in the seed catalog are illustrative and must be verified by an accountant.
@@ -54,4 +56,4 @@ computed in code ([D-019](decisions.md#d-019)).
 - *How do you stop double-sending?* Per-conversation locks, no side effects before `interrupt()`,
   `dispatch` checks `sent_at`, and follow-up jobs use stable IDs with `replace_existing`.
 - *How would you scale it?* Postgres checkpointer + records DB, scheduler moved to a single worker or
-  a queue, real channel adapters, auth with per-business catalogs.
+  a queue, real channel adapters, per-user and per-business accounts with their own catalogs.
