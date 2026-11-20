@@ -2,7 +2,7 @@
 
 - **Status:** Done
 - **Depends on:** [05](phase-05.md)
-- **Decisions:** [D-005](../decisions.md#d-005), [D-006](../decisions.md#d-006), [D-012](../decisions.md#d-012), [D-021](../decisions.md#d-021)
+- **Decisions:** [D-005](../decisions.md#d-005), [D-006](../decisions.md#d-006), [D-012](../decisions.md#d-012), [D-021](../decisions.md#d-021), [D-027](../decisions.md#d-027)
 
 ## Goal
 Replace the `render_pdf` stub with a professional quotation PDF generated from the priced quote, and
@@ -60,3 +60,6 @@ footer "Draft. Not valid until approved" watermark on unapproved revisions.
     total in words (Indian numbering), terms, flags for the owner.
   - `GET /files/quotes/{quote_id}/r{n}[-draft].pdf`, strict name patterns (path traversal → 404).
   - Tests: 350 offline (15 new). PDF text is extracted with pypdf and checked against the stored totals.
+- 2026-11-20: quotation restyled with the new brand ([D-027](../decisions.md#d-027)): marigold header and total
+  bars, ink table header, pink DRAFT mark, and a footer that says whether the owner has approved it.
+  Same fields and numbers; still Helvetica and "Rs." because of xhtml2pdf. `test_pdf.py`: 15 pass.

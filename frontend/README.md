@@ -2,6 +2,10 @@
 
 Next.js 16 (App Router, TypeScript) + Tailwind CSS v4.
 
+Brand: "Bazaar Pop" ([D-027](../docs/decisions.md#d-027)). Colours, fonts and shadows are Tailwind
+tokens in `src/app/globals.css`; the logo is `src/components/Logo.tsx` and icons are in
+`src/components/icons.tsx`.
+
 - `/customer`: Customer Hub (chat simulator with demo customers and scenario presets)
 - `/business`: Business Ops (inbox, quote inspector, edit/approve/reject)
 

@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
+import { LogoutIcon, RefreshIcon } from "@/components/icons";
 import { InboxTable, type InboxFilter } from "@/components/InboxTable";
+import { LogoMark } from "@/components/Logo";
 import { QuoteInspector } from "@/components/QuoteInspector";
-import { Button, Card, CardTitle, ErrorNote } from "@/components/ui";
+import { Button, Card, ErrorNote } from "@/components/ui";
 import { usePolling } from "@/hooks/usePolling";
 import {
   api,
@@ -15,12 +17,15 @@ import {
   type QuoteSummary,
 } from "@/lib/api";
 
+const PAGE = "mx-auto max-w-[1440px] px-4 sm:px-8";
+
 export default function BusinessOps() {
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState<string | null>(null);
   const [filter, setFilter] = useState<InboxFilter>("awaiting_approval");
   const [quotes, setQuotes] = useState<QuoteSummary[]>([]);
+  const [inboxLoaded, setInboxLoaded] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<QuoteDetail | null>(null);
   const [catalog, setCatalog] = useState<CatalogOption[]>([]);
@@ -42,6 +47,7 @@ export default function BusinessOps() {
 
   const refreshInbox = useCallback(async () => {
     setQuotes(await api.inbox(filter));
+    setInboxLoaded(true);
     setInboxError(null);
   }, [filter]);
 
@@ -115,87 +121,133 @@ export default function BusinessOps() {
     }
   };
 
+  const changeFilter = (next: InboxFilter) => {
+    setFilter(next);
+    setInboxLoaded(false);
+  };
+
   const waiting = quotes.filter((q) => q.status === "awaiting_approval").length;
+  const subline =
+    !inboxLoaded || filter === "closed"
+      ? "Nothing goes out without you."
+      : waiting > 0
+        ? `${waiting} ${waiting === 1 ? "quote needs" : "quotes need"} your OK. Nothing goes out without you.`
+        : "Sab clear! No quotes are waiting for you.";
 
   if (authenticated === null) {
-    return <Card className="p-8 text-center text-sm text-slate-500">Checking owner session…</Card>;
+    return (
+      <main className={`${PAGE} py-12`}>
+        <Card className="mx-auto max-w-md p-8 text-center text-[15px] font-semibold text-ink-500">
+          Checking owner session…
+        </Card>
+      </main>
+    );
   }
   if (!authenticated) {
     return (
-      <Card className="mx-auto max-w-md p-6">
-        <h1 className="text-xl font-semibold text-slate-900">Owner sign in</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Business Ops is private. Sign in with the owner password configured on the backend.
-        </p>
-        {authError && <ErrorNote message={authError} />}
-        <form className="mt-5 space-y-3" onSubmit={signIn}>
-          <label className="block text-sm font-medium text-slate-700" htmlFor="owner-password">
-            Owner password
-          </label>
-          <input
-            id="owner-password"
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-          />
-          <Button type="submit">Sign in</Button>
-        </form>
-      </Card>
+      <main className={`${PAGE} py-12`}>
+        <Card className="mx-auto max-w-md overflow-hidden shadow-pop-lg">
+          <div className="flex items-center gap-3.5 border-b-2 border-ink bg-marigold bg-dots px-6 py-5">
+            <LogoMark size={48} />
+            <div>
+              <h1 className="font-display text-2xl font-extrabold tracking-[-0.02em]">Owner sign in</h1>
+              <p className="text-sm font-bold">Business Ops is private.</p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-4 p-6">
+            <p className="text-[15px] leading-relaxed text-ink-700">
+              Sign in with the owner password configured on the backend.
+            </p>
+            {authError && <ErrorNote message={authError} />}
+            <form className="flex flex-col gap-2" onSubmit={signIn}>
+              <label className="text-sm font-extrabold" htmlFor="owner-password">
+                Owner password
+              </label>
+              <input
+                id="owner-password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="min-h-12 w-full rounded-[14px] border-2 border-line bg-mist px-3.5 text-base focus:border-ink focus:outline-none"
+              />
+              <Button type="submit" size="lg" className="mt-3 self-start">
+                Sign in
+              </Button>
+            </form>
+          </div>
+        </Card>
+      </main>
     );
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
-      <aside className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-slate-900">Business Ops</h1>
-          <Button variant="ghost" onClick={() => void signOut()}>
-            Sign out
-          </Button>
+    <main className={`${PAGE} pb-8 pt-5`}>
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div className="flex flex-col gap-1.5">
+          <h1 className="font-display text-[40px] font-extrabold leading-none tracking-[-0.04em]">Business Ops</h1>
+          <p className="text-base text-ink-700">{subline}</p>
         </div>
-        <ErrorNote message={inboxError} />
-        <Card className="overflow-hidden">
-          <CardTitle
-            aside={
-              filter === "awaiting_approval" && waiting > 0 ? (
-                <span className="rounded-full bg-amber-500 px-2 py-0.5 text-xs font-semibold text-white">
-                  {waiting}
-                </span>
-              ) : null
-            }
-          >
-            Quotes
-          </CardTitle>
+        <Button variant="ghost" onClick={() => void signOut()}>
+          <LogoutIcon size={18} />
+          Sign out
+        </Button>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-start gap-5">
+        <section
+          aria-labelledby="inbox-title"
+          className="min-w-0 flex-[1_1_340px] overflow-hidden rounded-3xl border-2 border-ink bg-white"
+        >
+          <div className="flex items-center justify-between gap-3 px-4.5 pb-3 pt-4">
+            <h2 id="inbox-title" className="font-display text-[22px] font-extrabold tracking-[-0.02em]">
+              Inbox
+            </h2>
+            {waiting > 0 && (
+              <span className="inline-flex min-h-7.5 items-center rounded-full border-2 border-ink bg-marigold px-3 text-[13px] font-extrabold">
+                {waiting} {waiting === 1 ? "needs" : "need"} your OK
+              </span>
+            )}
+          </div>
+          {inboxError && (
+            <div className="px-3.5 pb-3">
+              <ErrorNote message={inboxError} />
+            </div>
+          )}
           <InboxTable
             quotes={quotes}
             filter={filter}
-            onFilter={setFilter}
+            onFilter={changeFilter}
             selectedId={selectedId}
             onSelect={select}
           />
-        </Card>
-      </aside>
-      <section>
-        {detail ? (
-          <QuoteInspector
-            quote={detail}
-            catalog={catalog}
-            busy={busy}
-            error={error}
-            totalBeforeEdit={totalBeforeEdit}
-            onDecide={decide}
-          />
-        ) : (
-          <Card className="flex h-64 items-center justify-center">
-            <p className="text-sm text-slate-500">
-              {selectedId ? "Loading…" : "Select a quote to review it."}
-            </p>
-          </Card>
-        )}
-      </section>
-    </div>
+          <p className="flex items-center gap-2 border-t-2 border-ink bg-mist px-4.5 py-3 text-[13px] font-semibold text-ink-500">
+            <RefreshIcon size={16} />
+            Refreshes every 3 seconds
+          </p>
+        </section>
+
+        <div className="flex min-w-0 flex-[999_1_640px] flex-col">
+          {detail ? (
+            <QuoteInspector
+              quote={detail}
+              catalog={catalog}
+              busy={busy}
+              error={error}
+              totalBeforeEdit={totalBeforeEdit}
+              onDecide={decide}
+            />
+          ) : (
+            <Card className="flex min-h-64 flex-col items-center justify-center gap-3 border-dashed p-8 text-center">
+              <LogoMark size={44} />
+              <p className="text-[15px] font-semibold text-ink-500">
+                {selectedId ? "Loading…" : "Pick a quote from the inbox to review it."}
+              </p>
+            </Card>
+          )}
+        </div>
+      </div>
+    </main>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { MicIcon, StopIcon } from "./icons";
 import { Button } from "./ui";
 
 const MAX_SECONDS = 120;
@@ -73,22 +74,24 @@ export function VoiceRecorder({
           <Button variant="ghost" onClick={cancel} title="Cancel recording">
             Cancel
           </Button>
-          <Button variant="danger" onClick={stop} title="Stop and send">
-            ■ {seconds}s
+          <Button variant="danger" size="lg" onClick={stop} title="Stop and send" className="tabular-nums">
+            <StopIcon size={16} />
+            {seconds}s
           </Button>
         </div>
       ) : (
-        <Button
-          variant="secondary"
+        <button
+          type="button"
           onClick={start}
           disabled={disabled}
           title="Record a voice note"
           aria-label="Record a voice note"
+          className="flex size-12 items-center justify-center rounded-full border-2 border-ink bg-peacock-soft text-peacock-700 transition-colors hover:bg-[#c4efeb] disabled:opacity-55"
         >
-          🎤
-        </Button>
+          <MicIcon size={22} />
+        </button>
       )}
-      {error && <span className="mt-1 text-[10px] text-red-600">{error}</span>}
+      {error && <span className="mt-1 text-[11px] font-semibold text-chilli">{error}</span>}
     </div>
   );
 }
